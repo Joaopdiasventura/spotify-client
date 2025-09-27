@@ -1,0 +1,56 @@
+import {
+  ApplicationConfig,
+  importProvidersFrom,
+  provideBrowserGlobalErrorListeners,
+  provideZonelessChangeDetection,
+} from '@angular/core';
+import { provideRouter } from '@angular/router';
+
+import { routes } from './app.routes';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+import {
+  LucideAngularModule,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  Shuffle,
+  Repeat,
+  Home,
+  Search,
+  Music,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+} from 'lucide-angular';
+import { provideHttpClient, withFetch } from '@angular/common/http';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideZonelessChangeDetection(),
+    provideRouter(routes),
+    provideClientHydration(withEventReplay()),
+    provideHttpClient(withFetch()),
+    importProvidersFrom(
+      LucideAngularModule.pick({
+        Play,
+        Pause,
+        SkipBack,
+        SkipForward,
+        Volume2,
+        Shuffle,
+        Repeat,
+        Home,
+        Search,
+        Music,
+        X,
+        ChevronLeft,
+        ChevronRight,
+        Menu,
+      })
+    ),
+  ],
+};

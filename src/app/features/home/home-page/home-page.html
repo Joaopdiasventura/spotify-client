@@ -1,0 +1,42 @@
+<div class="h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col">
+  <div class="flex-1 flex overflow-hidden">
+    <div class="hidden md:block">
+      <app-sidebar></app-sidebar>
+    </div>
+
+    @if (sidebarOpen()) {
+    <div class="fixed inset-0 bg-black/50 z-40 md:hidden" (click)="closeSidebar()"></div>
+    <div class="fixed left-0 top-0 bottom-0 z-50 md:hidden">
+      <app-sidebar (closeEvent)="closeSidebar()"></app-sidebar>
+    </div>
+    }
+
+    <div class="flex-1 flex flex-col min-w-0">
+      <app-header (menuClick)="openSidebar()"></app-header>
+
+      <main class="flex-1 overflow-auto p-3 md:p-6 scrollbar-hide">
+        <div class="max-w-6xl mx-auto">
+          <h2 class="text-white mb-6 md:mb-8">Tocadas recentemente</h2>
+
+          <div class="grid gap-2">
+            @for (song of songs(); track song; let i = $index) {
+            <app-song-card
+              [song]="song"
+              [index]="i"
+              [isPlaying]="currentIndex() == i && isPlaying()"
+              (playEvent)="handlePlay($event)"
+            ></app-song-card>
+            }
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <app-player
+    [playlist]="songs()"
+    [currentIndex]="currentIndex()"
+    [isPlaying]="isPlaying()"
+    (playEvent)="handlePlay($event)"
+  ></app-player>
+</div>

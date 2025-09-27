@@ -1,0 +1,61 @@
+<aside class="w-64 bg-black flex flex-col h-full">
+  <div class="p-6 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <i class="lucide lucide-music h-8 w-8 text-green-500"></i>
+      <span class="text-white">Etec GRU</span>
+    </div>
+    @if (onClose) {
+    <button class="md:hidden text-gray-400 hover:text-white" (click)="handleClose()">
+      <i class="lucide lucide-x h-5 w-5"></i>
+    </button>
+    }
+  </div>
+
+  <nav class="px-6 space-y-4">
+    <div class="space-y-2">
+      <button
+        class="w-full justify-start text-white hover:text-white hover:bg-gray-800 p-3 flex items-center"
+        (click)="handleClose()"
+      >
+        <i class="lucide lucide-home h-5 w-5 mr-3"></i>
+        Início
+      </button>
+      <button
+        class="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800 p-3 flex items-center"
+        (click)="handleClose()"
+      >
+        <i class="lucide lucide-search h-5 w-5 mr-3"></i>
+        Buscar
+      </button>
+    </div>
+  </nav>
+
+  <div class="flex-1 px-6 mt-6">
+    <div class="space-y-2">
+      <button
+        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
+        (click)="handleClose()"
+      >
+        Rock Classics
+      </button>
+      <button
+        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
+        (click)="handleClose()"
+      >
+        Chill Vibes
+      </button>
+      <button
+        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
+        (click)="handleClose()"
+      >
+        Electronic Beats
+      </button>
+      <button
+        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
+        (click)="handleClose()"
+      >
+        Jazz Essentials
+      </button>
+    </div>
+  </div>
+</aside>

@@ -1,0 +1,143 @@
+<audio #audio controls style="display: none"></audio>
+
+@if (currentSong) {
+<div
+  class="fixed bottom-0 left-0 right-0 bg-black border-t border-gray-800 px-2 md:px-4 py-2 md:py-3 z-50"
+>
+  <!-- Mobile Player -->
+  <div class="md:hidden">
+    <!-- Linha 1: Info da música -->
+    <div class="flex items-center gap-2 min-w-0 mb-2">
+      <img
+        [src]="currentSong.thumbnail"
+        [alt]="currentSong.title + ' album cover'"
+        class="w-14 h-14 rounded object-cover"
+      />
+      <div class="min-w-0">
+        <h4 class="text-white truncate text-lg">{{ currentSong.title }}</h4>
+        <p class="text-gray-400 text-base truncate">{{ currentSong.artist }}</p>
+      </div>
+    </div>
+    <!-- Linha 2: Tempo/progresso -->
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-xs text-gray-400">{{ formatTime(currentTime()) }}</span>
+      <input
+        type="range"
+        [min]="0"
+        [max]="currentSong.duration"
+        [value]="currentTime()"
+        step="0.01"
+        class="flex-1"
+        [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
+        (input)="onSeek($event.target.valueAsNumber)"
+      />
+      <span class="text-xs text-gray-400">{{ formatTime(currentSong.duration) }}</span>
+    </div>
+    <!-- Linha 3: Controles -->
+    <div class="flex items-center justify-center gap-1">
+      <button
+        (click)="toggleShuffle()"
+        class="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center"
+        [class.text-green-500]="shuffle()"
+      >
+        <lucide-icon name="shuffle" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button (click)="onPrev()" class="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center">
+        <lucide-icon name="skip-back" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button
+        (click)="onPlayPause()"
+        class="bg-white text-black hover:bg-gray-200 rounded-full w-8 h-8 flex items-center justify-center"
+      >
+        <lucide-icon [name]="isPlaying ? 'pause' : 'play'" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button (click)="onNext()" class="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center">
+        <lucide-icon name="skip-forward" class="h-4 w-4"></lucide-icon>
+      </button>
+      <button
+        (click)="toggleLoop()"
+        class="text-gray-400 hover:text-white w-8 h-8 flex items-center justify-center"
+        [class.text-green-500]="loop()"
+      >
+        <lucide-icon name="repeat" class="h-4 w-4"></lucide-icon>
+      </button>
+    </div>
+    <!-- volume control removed on mobile -->
+  </div>
+  <!-- Desktop Player -->
+  <div class="hidden md:flex items-center justify-between">
+    <div class="flex items-center gap-3 min-w-0 flex-1">
+      <img
+        [src]="currentSong.thumbnail"
+        [alt]="currentSong.title + ' album cover'"
+        class="w-14 h-14 rounded object-cover"
+      />
+      <div class="min-w-0">
+        <h4 class="text-white truncate">{{ currentSong.title }}</h4>
+        <p class="text-gray-400 text-sm truncate">{{ currentSong.artist }}</p>
+      </div>
+    </div>
+    <div class="flex flex-col items-center gap-2 flex-1 max-w-md">
+      <div class="flex items-center gap-2">
+        <button
+          (click)="toggleShuffle()"
+          class="text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+          [class.text-green-500]="shuffle()"
+        >
+          <lucide-icon name="shuffle" class="h-4 w-4"></lucide-icon>
+        </button>
+        <button
+          (click)="onPrev()"
+          class="text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+        >
+          <lucide-icon name="skip-back" class="h-5 w-5"></lucide-icon>
+        </button>
+        <button
+          (click)="onPlayPause()"
+          class="bg-white text-black hover:bg-gray-200 rounded-full w-10 h-10 flex items-center justify-center cursor-pointer"
+        >
+          <lucide-icon [name]="isPlaying ? 'pause' : 'play'" class="h-5 w-5"></lucide-icon>
+        </button>
+        <button
+          (click)="onNext()"
+          class="text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+        >
+          <lucide-icon name="skip-forward" class="h-5 w-5"></lucide-icon>
+        </button>
+        <button
+          (click)="toggleLoop()"
+          class="text-gray-400 hover:text-white flex items-center justify-center cursor-pointer"
+          [class.text-green-500]="loop()"
+        >
+          <lucide-icon name="repeat" class="h-4 w-4"></lucide-icon>
+        </button>
+      </div>
+      <div class="flex items-center gap-2 w-full">
+        <span class="text-xs text-gray-400">{{ formatTime(currentTime()) }}</span>
+        <input
+          type="range"
+          [min]="0"
+          [max]="currentSong.duration"
+          [value]="currentTime()"
+          class="flex-1"
+          [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
+          (input)="onSeek($event.target.valueAsNumber)"
+        />
+        <span class="text-xs text-gray-400">{{ formatTime(currentSong.duration) }}</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-2 flex-1 justify-end">
+      <lucide-icon name="volume-2" class="h-4 w-4 text-gray-400"></lucide-icon>
+      <input
+        type="range"
+        [value]="volume() * 100"
+        max="100"
+        step="1"
+        class="w-24"
+        [style.--progress]="(volume() * 100) + '%'"
+        (input)="onVolumeChange($event.target.valueAsNumber / 100)"
+      />
+    </div>
+  </div>
+</div>
+}
