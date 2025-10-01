@@ -24,12 +24,23 @@
       <input
         type="text"
         placeholder="O que você quer ouvir?"
-        class="pl-10 bg-gray-800/50 border-0 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-white rounded-full text-sm md:text-base w-full py-2"
+        class="pl-10 pr-10 bg-gray-800/50 border-0 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-white rounded-full text-sm md:text-base w-full py-2"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value); onSearchChange()"
       />
       <lucide-icon
         name="search"
         class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
       ></lucide-icon>
+
+      @if (searchQuery()) {
+        <button
+          (click)="clearSearch()"
+          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+        >
+          <lucide-icon name="x" class="h-4 w-4"></lucide-icon>
+        </button>
+      }
     </div>
   </div>
 </header>

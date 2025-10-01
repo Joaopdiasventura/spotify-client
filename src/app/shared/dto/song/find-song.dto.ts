@@ -5,4 +5,5 @@ export interface FindSongDto {
   orderBy?: string;
   limit?: number;
   page?: number;
+  search?: string;
 }
