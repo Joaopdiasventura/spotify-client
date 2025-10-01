@@ -1,7 +1,6 @@
 import {
   Component,
   EventEmitter,
-  inject,
   Input,
   OnChanges,
   OnInit,
@@ -9,12 +8,16 @@ import {
   PLATFORM_ID,
   SimpleChanges,
   signal,
+  inject,
+  ViewChild,
+  ElementRef,
+  AfterViewInit,
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { Song } from '../../../core/models/song';
-import { SongChunkService } from '../../../core/services/song-chunk/song-chunk.service';
 import { isPlatformBrowser } from '@angular/common';
+import { Song } from '../../../core/models/song';
 import { SongChunk } from '../../../core/models/song-chunk';
+import { SongChunkService } from '../../../core/services/song-chunk/song-chunk.service';
 
 @Component({
   selector: 'app-player',
@@ -22,11 +25,13 @@ import { SongChunk } from '../../../core/models/song-chunk';
   templateUrl: './player.html',
   styleUrls: ['./player.scss'],
 })
-export class Player implements OnInit, OnChanges {
+export class Player implements OnInit, AfterViewInit, OnChanges {
   @Input() public playlist: Song[] = [];
   @Input() public currentIndex = -1;
   @Input() public isPlaying = false;
   @Output() public playEvent = new EventEmitter<number>();
+
+  @ViewChild('audio', { static: true }) audioRef!: ElementRef<HTMLAudioElement>;
 
   private readonly platform = inject(PLATFORM_ID);
   private readonly songChunkService = inject(SongChunkService);
@@ -37,16 +42,23 @@ export class Player implements OnInit, OnChanges {
 
   public chunks: SongChunk[] = [];
   public currentChunkIndex = 0;
-  public isSourceBufferReady = false;
-  public pendingFirstChunk = false;
 
   public currentTime = signal(0);
   public volume = signal(1);
   public shuffle = signal(false);
-  public loop = signal(false); // loop all playlist when reaching end
+  public loop = signal(false);
 
-  // Playback order mapping. Values are indices into `playlist`.
   private order: number[] = [];
+  private chunkDurations: number[] = [];
+  private chunkStarts: number[] = [];
+  private totalDuration = 0;
+  private nextAppendScheduled = false;
+
+  private seekThreshold = 1.25;
+  private isSeeking = false;
+  private seekTargetTime = 0;
+  private objectUrl: string | null = null;
+  private firstAppendDone = false;
 
   public get currentSong(): Song | null {
     return this.currentIndex >= 0 && this.currentIndex < this.playlist.length
@@ -56,121 +68,73 @@ export class Player implements OnInit, OnChanges {
 
   public ngOnInit(): void {
     if (!isPlatformBrowser(this.platform)) return;
-    this.initMediaSource();
+  }
+
+  public ngAfterViewInit(): void {
+    if (!isPlatformBrowser(this.platform)) return;
+    this.audio = this.audioRef.nativeElement;
+    this.audio.volume = this.volume();
+    this.audio.addEventListener('timeupdate', () => this.currentTime.set(this.audio.currentTime));
+    this.audio.addEventListener('ended', () => this.onAudioEnded());
+    this.createMediaPipeline(0);
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['playlist']) {
-      this.rebuildOrder();
-    }
-
+    if (changes['playlist']) this.rebuildOrder();
     if ((changes['playlist'] || changes['currentIndex']) && isPlatformBrowser(this.platform))
       if (this.currentSong) this.handleSongChange();
   }
 
   public onPlayPause(): void {
-    if (!this.audio.src) return;
-
+    if (!this.audio || !this.audio.src) return;
     if (this.audio.paused) {
-      this.audio.play().catch((err) => console.error('Erro ao reproduzir:', err));
+      this.audio.play().catch(() => {});
       this.isPlaying = true;
     } else {
       this.audio.pause();
       this.isPlaying = false;
     }
-
     this.playEvent.emit(this.currentIndex);
   }
 
-  public onSeek(time: number): void {
-    if (this.audio && this.audio.duration)
-      this.audio.currentTime = Math.min(Math.max(time, 0), this.audio.duration);
-  }
-
-  public onVolumeChange(volume: number): void {
-    this.volume.set(Math.min(Math.max(volume, 0), 1));
-    if (this.audio) this.audio.volume = this.volume();
-  }
-
-  public formatTime(time: number): string {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-  }
-
-  private initMediaSource(): void {
-    this.audio = new Audio();
-    this.audio.volume = this.volume();
-
-    this.audio.addEventListener('timeupdate', () => this.currentTime.set(this.audio.currentTime));
-    this.audio.addEventListener('ended', () => this.onAudioEnded());
-
-    this.mediaSource = new MediaSource();
-    this.audio.src = URL.createObjectURL(this.mediaSource);
-
-    this.mediaSource.addEventListener('sourceopen', () => {
-      this.isSourceBufferReady = true;
-      if (this.pendingFirstChunk && this.chunks.length) {
-        this.appendChunk(this.currentChunkIndex);
-        this.pendingFirstChunk = false;
-      }
-    });
-  }
-
-  public onPrev(): void {
-    if (!this.playlist.length) return;
+  public onSeek(t: number): void {
     if (!this.audio) return;
-
-    if (this.audio.currentTime > 3) {
-      this.onSeek(0);
+    const time = Math.max(0, Math.min(t, this.totalDuration || t));
+    const delta = Math.abs(time - this.audio.currentTime);
+    const idx = this.findChunkByTime(time);
+    const curIdx = this.findChunkByTime(this.audio.currentTime);
+    if (delta > this.seekThreshold || idx !== curIdx) {
+      this.hardSeek(time);
       return;
     }
-
-    const newIndex = this.computePrevIndex();
-    if (newIndex === null) return;
-    this.playEvent.emit(newIndex);
+    this.audio.currentTime = time;
   }
 
-  public onNext(): void {
-    if (!this.playlist.length) return;
-
-    const newIndex = this.computeNextIndex();
-    if (newIndex === null) return;
-    this.playEvent.emit(newIndex);
+  public onVolumeChange(v: number): void {
+    const vol = Math.min(Math.max(v, 0), 1);
+    this.volume.set(vol);
+    if (this.audio) this.audio.volume = vol;
   }
 
   public toggleShuffle(): void {
-    const nextState = !this.shuffle();
-    this.shuffle.set(nextState);
+    this.shuffle.set(!this.shuffle());
     this.rebuildOrder();
   }
 
   public toggleLoop(): void {
-    this.loop.update((prev) => !prev);
+    this.loop.update((p) => !p);
   }
 
-  private onAudioEnded(): void {
-    // Try advance to next based on settings; if not possible, stop playback
-    const hadNext = ((): boolean => {
-      if (!this.playlist.length) return false;
-      if (this.shuffle()) return this.playlist.length > 1;
-      if (this.currentIndex + 1 < this.playlist.length) return true;
-      return this.loop();
-    })();
-
-    if (hadNext) this.onNext();
-    else {
-      // stop playback
-      this.isPlaying = false;
-      this.playEvent.emit(this.currentIndex); // notify parent to toggle off
-    }
+  public formatTime(time: number): string {
+    const m = Math.floor(time / 60);
+    const s = Math.floor(time % 60);
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   }
 
   private handleSongChange(): void {
     if (!this.currentSong) return;
-
-    this.stopPreviousSong();
-    this.loadChunks(this.currentSong._id);
+    this.teardownMediaPipeline();
+    this.loadChunks(this.currentSong._id, 0);
   }
 
   private rebuildOrder(): void {
@@ -179,28 +143,17 @@ export class Player implements OnInit, OnChanges {
       this.order = [];
       return;
     }
-
     if (!this.shuffle()) {
-      // identity order
       this.order = Array.from({ length: n }, (_, i) => i);
       return;
     }
-
-    // Build a shuffled order that includes all indices exactly once.
-    // Keep the current song at position 0 to avoid abrupt jump.
     const rest: number[] = [];
     for (let i = 0; i < n; i++) if (i !== this.currentIndex) rest.push(i);
-    // Fisher–Yates
     for (let i = rest.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [rest[i], rest[j]] = [rest[j], rest[i]];
     }
     this.order = [this.currentIndex, ...rest];
-  }
-
-  private findOrderPos(index: number): number {
-    if (!this.order.length) this.rebuildOrder();
-    return this.order.indexOf(index);
   }
 
   private computeNextIndex(): number | null {
@@ -211,8 +164,7 @@ export class Player implements OnInit, OnChanges {
       if (this.loop()) return 0;
       return null;
     }
-    // shuffled order
-    const pos = this.findOrderPos(this.currentIndex);
+    const pos = this.order.indexOf(this.currentIndex);
     if (pos < 0) return null;
     const nextPos = pos + 1;
     if (nextPos < this.order.length) return this.order[nextPos];
@@ -228,8 +180,7 @@ export class Player implements OnInit, OnChanges {
       if (this.loop()) return this.playlist.length - 1;
       return null;
     }
-    // shuffled order
-    const pos = this.findOrderPos(this.currentIndex);
+    const pos = this.order.indexOf(this.currentIndex);
     if (pos < 0) return null;
     const prevPos = pos - 1;
     if (prevPos >= 0) return this.order[prevPos];
@@ -237,78 +188,180 @@ export class Player implements OnInit, OnChanges {
     return null;
   }
 
-  private stopPreviousSong(): void {
-    if (this.audio && !this.audio.paused) this.audio.pause();
-
-    if (this.sourceBuffer) {
-      try {
-        if (!this.sourceBuffer.updating) this.sourceBuffer.abort();
-      } catch (error) {
-        console.warn('Erro ao limpar sourceBuffer:', error);
-      }
-      this.sourceBuffer = null as unknown as SourceBuffer;
+  public onPrev(): void {
+    if (!this.playlist.length || !this.audio) return;
+    if (this.audio.currentTime > 3) {
+      this.onSeek(0);
+      return;
     }
-
-    if (this.mediaSource && this.mediaSource.readyState != 'closed') {
-      try {
-        this.mediaSource.endOfStream();
-      } catch (error) {
-        console.warn('Erro ao finalizar mediaSource:', error);
-      }
-    }
-
-    this.chunks = [];
-    this.currentChunkIndex = 0;
-    this.isSourceBufferReady = false;
-    this.pendingFirstChunk = true;
-
-    this.currentTime.set(0);
-
-    this.initMediaSource();
+    const newIndex = this.computePrevIndex();
+    if (newIndex === null) return;
+    this.playEvent.emit(newIndex);
   }
 
-  private loadChunks(songId: string): void {
+  public onNext(): void {
+    if (!this.playlist.length) return;
+    const newIndex = this.computeNextIndex();
+    if (newIndex === null) return;
+    this.playEvent.emit(newIndex);
+  }
+
+  private onAudioEnded(): void {
+    const hadNext = (() => {
+      if (!this.playlist.length) return false;
+      if (this.shuffle()) return this.playlist.length > 1;
+      if (this.currentIndex + 1 < this.playlist.length) return true;
+      return this.loop();
+    })();
+    if (hadNext) this.onNext();
+    else {
+      this.isPlaying = false;
+      this.playEvent.emit(this.currentIndex);
+    }
+  }
+
+  private createMediaPipeline(seekTo: number): void {
+    this.mediaSource = new MediaSource();
+    if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    this.objectUrl = URL.createObjectURL(this.mediaSource);
+    this.audio.src = this.objectUrl;
+    this.firstAppendDone = false;
+    this.mediaSource.addEventListener(
+      'sourceopen',
+      () => {
+        this.mediaSource.duration = this.totalDuration || 1e6;
+        this.sourceBuffer = this.mediaSource.addSourceBuffer('audio/mpeg');
+        this.sourceBuffer.mode = 'sequence';
+        this.sourceBuffer.addEventListener('updateend', () => {
+          if (!this.firstAppendDone) {
+            this.firstAppendDone = true;
+            const safe = Math.max(seekTo, (this.chunkStarts[this.currentChunkIndex] ?? 0) + 0.01);
+            try {
+              this.audio.currentTime = safe;
+            } catch {}
+            if (this.isPlaying) this.audio.play().catch(() => {});
+            this.scheduleNextAppend(this.currentChunkIndex);
+          } else {
+            const next = this.currentChunkIndex + 1;
+            if (next < this.chunks.length) this.scheduleNextAppend(this.currentChunkIndex);
+            else {
+              try {
+                this.mediaSource.endOfStream();
+              } catch {}
+            }
+          }
+        });
+        const idx = this.findChunkByTime(seekTo);
+        this.currentChunkIndex = idx;
+        const offset = this.chunkStarts[idx] ?? 0;
+        try {
+          this.sourceBuffer.timestampOffset = offset;
+        } catch {}
+        this.appendChunk(idx);
+      },
+      { once: true }
+    );
+  }
+
+  private teardownMediaPipeline(): void {
+    try {
+      if (this.sourceBuffer && this.sourceBuffer.updating) this.sourceBuffer.abort();
+    } catch {}
+    try {
+      if (this.mediaSource && this.mediaSource.readyState !== 'closed')
+        this.mediaSource.endOfStream();
+    } catch {}
+    this.nextAppendScheduled = false;
+  }
+
+  private hardSeek(time: number): void {
+    if (!this.mediaSource) return;
+    this.isSeeking = true;
+    this.seekTargetTime = time;
+    const wasPlaying = this.isPlaying;
+    this.isPlaying = wasPlaying;
+    if (!this.audio.paused) this.audio.pause();
+    this.teardownMediaPipeline();
+    this.createMediaPipeline(time);
+  }
+
+  private loadChunks(songId: string, seekTo: number): void {
     this.songChunkService.findAllBySong(songId).subscribe({
       next: async (chunks: SongChunk[]) => {
         this.chunks = chunks;
-        this.currentChunkIndex = 0;
-
-        if (!chunks.length) return;
-
-        if (this.isSourceBufferReady) {
-          this.appendChunk(this.currentChunkIndex);
-          this.pendingFirstChunk = false;
-        } else this.pendingFirstChunk = true;
+        this.chunkDurations = chunks.map((c: any) => Number(c.durationSec ?? c.duration ?? 0));
+        if (!this.chunkDurations.every((v) => v > 0)) this.chunkDurations = chunks.map(() => 5);
+        this.chunkStarts = [];
+        let acc = 0;
+        for (let i = 0; i < this.chunkDurations.length; i++) {
+          this.chunkStarts.push(acc);
+          acc += this.chunkDurations[i];
+        }
+        this.totalDuration = acc;
+        this.currentChunkIndex = this.findChunkByTime(seekTo);
+        this.createMediaPipeline(seekTo);
       },
-      error: (err) => console.error(err),
+      error: () => {},
     });
+  }
+
+  private scheduleNextAppend(prevIndex: number): void {
+    if (this.nextAppendScheduled) return;
+    const next = prevIndex + 1;
+    if (next >= this.chunks.length) return;
+    this.nextAppendScheduled = true;
+    const threshold =
+      (this.chunkStarts[prevIndex] ?? 0) + (this.chunkDurations[prevIndex] ?? 0) * 0.55;
+    const fn = () => {
+      if (this.audio.currentTime >= threshold) {
+        this.audio.removeEventListener('timeupdate', fn);
+        this.nextAppendScheduled = false;
+        this.appendChunk(next);
+        this.currentChunkIndex = next;
+      }
+    };
+    if (this.audio.currentTime >= threshold) {
+      this.nextAppendScheduled = false;
+      this.appendChunk(next);
+      this.currentChunkIndex = next;
+    } else {
+      this.audio.addEventListener('timeupdate', fn);
+    }
   }
 
   private async appendChunk(index: number): Promise<void> {
     if (!this.mediaSource || index >= this.chunks.length) return;
-
     const chunk = this.chunks[index];
-    const response = await fetch(chunk.url);
-    const arrayBuffer = await response.arrayBuffer();
+    const res = await fetch(chunk.url);
+    const buf = await res.arrayBuffer();
+    if (!this.sourceBuffer) return;
+    await this.waitNotUpdating();
+    try {
+      this.sourceBuffer.appendBuffer(buf);
+    } catch {}
+  }
 
-    if (!this.sourceBuffer) {
-      this.sourceBuffer = this.mediaSource.addSourceBuffer('audio/mpeg');
-      this.sourceBuffer.mode = 'sequence';
-      this.sourceBuffer.addEventListener('updateend', () => {
-        this.currentChunkIndex++;
-        if (this.currentChunkIndex < this.chunks.length) this.appendChunk(this.currentChunkIndex);
-        else this.mediaSource.endOfStream();
-      });
+  private waitNotUpdating(): Promise<void> {
+    if (!this.sourceBuffer) return Promise.resolve();
+    if (!this.sourceBuffer.updating) return Promise.resolve();
+    return new Promise((resolve) => {
+      const h = () => {
+        if (!this.sourceBuffer.updating) {
+          this.sourceBuffer.removeEventListener('updateend', h);
+          resolve();
+        }
+      };
+      this.sourceBuffer.addEventListener('updateend', h);
+    });
+  }
+
+  private findChunkByTime(t: number): number {
+    if (!this.chunkStarts.length) return 0;
+    for (let i = this.chunkStarts.length - 1; i >= 0; i--) {
+      const s = this.chunkStarts[i] ?? 0;
+      const e = s + (this.chunkDurations[i] ?? 0);
+      if (t >= s && t < e) return i;
     }
-
-    this.sourceBuffer.appendBuffer(arrayBuffer);
-
-    if (index == 0) {
-      try {
-        await this.audio.play();
-      } catch (err) {
-        console.warn('Autoplay bloqueado:', err);
-      }
-    }
+    return Math.max(0, this.chunkStarts.length - 1);
   }
 }
