@@ -126,6 +126,10 @@ export class HomePage implements OnDestroy {
     this.observer?.disconnect();
   }
 
+  public handlePlayerLoadMore(): void {
+    this.loadMore();
+  }
+
   private setupObserver(): void {
     if (!isPlatformBrowser(this.platform)) return;
     if (!this.gridEl || !this.sentinelEl) return;

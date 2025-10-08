@@ -60,6 +60,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   private seekTargetTime = 0;
   private objectUrl: string | null = null;
   private firstAppendDone = false;
+  private pendingAdvanceAfterLoad = false;
 
   public get currentSong(): Song | null {
     if (!this.playlist) return null;
@@ -82,7 +83,17 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['playlist']) this.rebuildOrder();
+    if (changes['playlist']) {
+      this.rebuildOrder();
+      if (this.pendingAdvanceAfterLoad) {
+        const nextIdx = this.computeNextIndex();
+        if (nextIdx != null) {
+          this.pendingAdvanceAfterLoad = false;
+          this.playEvent.emit(nextIdx);
+          return;
+        }
+      }
+    }
     if ((changes['playlist'] || changes['currentIndex']) && isPlatformBrowser(this.platform))
       if (this.currentSong) this.handleSongChange();
   }
@@ -203,13 +214,10 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   public onNext(): void {
-    console.log(this.playlist);
-
     if (!this.playlist || !this.playlist.length) return;
     const newIndex = this.computeNextIndex();
     if (newIndex == null) {
-      console.log('load more');
-
+      this.pendingAdvanceAfterLoad = true;
       this.loadMore.emit();
       return;
     }
@@ -225,9 +233,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     })();
     if (hadNext) this.onNext();
     else {
-      console.log('load more');
       this.isPlaying = false;
-      this.playEvent.emit(this.currentIndex);
+      this.pendingAdvanceAfterLoad = true;
       this.loadMore.emit();
     }
   }
