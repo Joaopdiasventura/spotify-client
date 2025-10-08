@@ -1,37 +1,20 @@
-<div
-  class="group flex items-center gap-3 md:gap-4 p-2 md:p-3 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer"
->
-  <div class="relative w-12 h-12 md:w-16 md:h-16 rounded-lg overflow-hidden flex-shrink-0">
-    <img
-      [src]="song.thumbnail"
-      [alt]="song.title + ' album cover'"
-      class="w-full h-full object-cover"
-    />
+<div class="song-card" (click)="onPlayClick()">
+  <div class="thumb">
+    <img [src]="song.thumbnail" [alt]="song.title + ' album cover'" />
     @if (!isPlaying) {
-    <div
-      class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-    >
-      <button
-        (click)="onPlayClick()"
-        class="w-6 h-6 md:w-8 md:h-8 bg-green-500 hover:bg-green-600 text-black rounded-full flex items-center justify-center cursor-pointer"
-      >
-        <lucide-icon name="play" class="h-3 w-3 md:h-4 md:w-4"></lucide-icon>
+    <div class="thumb-overlay">
+      <button class="play-btn">
+        <lucide-icon name="play"></lucide-icon>
       </button>
     </div>
     }
   </div>
 
-  <div class="flex-1 min-w-0">
-    <h3 class="text-white truncate text-sm md:text-base">{{ song.title }}</h3>
-    <p class="text-gray-400 text-xs md:text-sm truncate md:block hidden">
-      {{ song.description }}
-    </p>
-    <p class="text-gray-400 text-xs md:text-sm truncate">
-      {{ song.artist }}
-    </p>
+  <div class="meta">
+    <h3 class="title">{{ song.title }}</h3>
+    <p class="desc">{{ song.description }}</p>
+    <p class="artist">{{ song.artist }}</p>
   </div>
 
-  <div class="text-gray-400 text-xs md:text-sm flex-shrink-0">
-    {{ formatedDuration }}
-  </div>
+  <div class="duration">{{ formatedDuration }}</div>
 </div>

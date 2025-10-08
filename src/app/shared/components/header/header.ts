@@ -1,6 +1,6 @@
-import { Component, EventEmitter, Output, signal, output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { FormsModule } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-header',
@@ -8,21 +8,29 @@ import { FormsModule } from '@angular/forms';
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })
-export class Header {
+export class Header implements OnInit, OnDestroy {
+  @Input() public showSearch = true;
   @Output() public menuClick = new EventEmitter<void>();
-  public searchQuery = signal<string>('');
-  public searchChange = output<string>();
+  @Output() public searchEvent = new EventEmitter<string>();
+  private searchInput$ = new Subject<string>();
+  private destroy$ = new Subject<void>();
 
   public onMenuClick(): void {
     this.menuClick.emit();
   }
 
-  public onSearchChange(): void {
-    this.searchChange.emit(this.searchQuery());
+  public onSearchInput(value: string): void {
+    this.searchInput$.next(value);
   }
 
-  public clearSearch(): void {
-    this.searchQuery.set('');
-    this.searchChange.emit('');
+  public ngOnInit(): void {
+    this.searchInput$
+      .pipe(debounceTime(500), distinctUntilChanged(), takeUntil(this.destroy$))
+      .subscribe((v) => this.searchEvent.emit(v));
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }

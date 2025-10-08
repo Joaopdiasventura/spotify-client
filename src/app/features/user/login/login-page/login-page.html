@@ -1,0 +1,64 @@
+<section class="auth">
+  <div class="auth-card">
+    <div class="auth-header">
+      <lucide-icon name="music"></lucide-icon>
+      <h1>Entrar</h1>
+      <p>Acesse sua conta para continuar</p>
+    </div>
+
+    @if (error) {
+    <div class="alert">{{ error }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <lucide-icon name="mail"></lucide-icon>
+          <input id="email" type="email" formControlName="email" placeholder="Digite seu email" />
+        </div>
+        @if (f["email"].touched && f["email"].errors) {
+        <small class="error">
+          @switch (true) { @case (f["email"].errors['required']) {
+          <span>Informe seu email.</span>
+          } @case (f["email"].errors['email']) {
+          <span>Email inválido.</span>
+          } }
+        </small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <div class="input-wrap">
+          <lucide-icon name="lock"></lucide-icon>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Digite sua senha"
+          />
+        </div>
+        @if (f['password'].touched && f['password'].errors) {
+        <small class="error">
+          @switch (true) { @case (f['password'].errors['required']) {
+          <span>Informe sua senha.</span>
+          } @case (f['password'].errors['minlength']) {
+          <span>Mínimo de 6 caracteres.</span>
+          } }
+        </small>
+        }
+      </div>
+
+      <div class="actions">
+        <a routerLink="user/reset-password" class="muted">Esqueci minha senha</a>
+        <button class="btn" type="submit" [disabled]="loading">Entrar</button>
+      </div>
+    </form>
+
+    <div class="auth-footer">
+      <span>Não tem conta?</span>
+      <a routerLink="/user/create">Criar conta</a>
+    </div>
+  </div>
+</section>

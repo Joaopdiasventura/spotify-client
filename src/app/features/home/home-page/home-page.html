@@ -1,66 +1,48 @@
-<div class="h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 flex flex-col">
-  <div class="flex-1 flex overflow-hidden">
-    <div class="hidden md:block">
-      <app-sidebar></app-sidebar>
-    </div>
+<div class="layout" [class.drawer-open]="sidebarOpen()">
+  <div class="sidebar-wrapper"><app-sidebar (closeEvent)="changeSidebar()"></app-sidebar></div>
 
-    @if (sidebarOpen()) {
-    <div class="fixed inset-0 bg-black/50 z-40 md:hidden" (click)="closeSidebar()"></div>
-    <div class="fixed left-0 top-0 bottom-0 z-50 md:hidden">
-      <app-sidebar (closeEvent)="closeSidebar()"></app-sidebar>
-    </div>
-    }
+  <div class="overlay" (click)="changeSidebar()"></div>
 
-    <div class="flex-1 flex flex-col min-w-0">
-      <app-header
-        (menuClick)="openSidebar()"
-        (searchChange)="onSearch($event)"
-      ></app-header>
+  <div class="main">
+    <app-header (searchEvent)="onSearchChange($event)" (menuClick)="changeSidebar()"></app-header>
 
-      <main class="flex-1 overflow-auto p-3 md:p-6 scrollbar-hide">
-        <div class="max-w-6xl mx-auto">
-          @if (searchQuery()) {
-            <h2 class="text-white mb-6 md:mb-8">
-              Resultados para "{{ searchQuery() }}"
-              <span class="text-gray-400 text-sm">({{ songs().length }} resultados)</span>
-            </h2>
-          } @else {
-            <h2 class="text-white mb-6 md:mb-8">Tocadas recentemente</h2>
-          }
+    <main class="content">
+      <div class="container">
+        @let loading = (loading$ | async); @let songs = (songs$ | async); @let label = (label$ |
+        async); @if (!loading) {
+        <h2 class="section-title">
+          {{ label }}
+        </h2>
+        }
 
-          @if (isLoading()) {
-            <div class="flex justify-center items-center py-12">
-              <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <div class="grid-cards" #gridCards>
+          @for (song of songs; track song; let i = $index) {
+          <app-song-card
+            [song]="song"
+            [index]="i"
+            [isPlaying]="currentIndex() == i && isPlaying()"
+            (playEvent)="handlePlay($event)"
+          ></app-song-card>
+          } @if (loading) { @for (n of skeletons; track n) {
+          <div class="song-skeleton">
+            <div class="thumb-skel skeleton"></div>
+            <div class="meta-skel">
+              <div class="line w-60 skeleton"></div>
+              <div class="line w-40 skeleton"></div>
+              <div class="line w-48 skeleton"></div>
             </div>
-          } @else {
-            <div class="grid gap-2">
-              @if (songs().length > 0) {
-                @for (song of songs(); track song._id; let i = $index) {
-                <app-song-card
-                  [song]="song"
-                  [index]="i"
-                  [isPlaying]="currentIndex() == i && isPlaying()"
-                  (playEvent)="handlePlay($event)"
-                ></app-song-card>
-                }
-              } @else if (searchQuery()) {
-                <div class="text-center py-12">
-                  <lucide-icon name="search" class="h-16 w-16 text-gray-500 mx-auto mb-4"></lucide-icon>
-                  <h3 class="text-white text-lg mb-2">Nenhum resultado encontrado</h3>
-                  <p class="text-gray-400">Tente buscar com outros termos</p>
-                </div>
-              }
-            </div>
-          }
+            <div class="duration-skel line w-20 skeleton"></div>
+          </div>
+          } }
+          <div #infiniteSentinel class="infinite-sentinel" aria-hidden="true"></div>
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   </div>
 
   <app-player
-    [playlist]="songs()"
+    [playlist]="songs$ | async"
     [currentIndex]="currentIndex()"
     [isPlaying]="isPlaying()"
     (playEvent)="handlePlay($event)"
   ></app-player>
-</div>

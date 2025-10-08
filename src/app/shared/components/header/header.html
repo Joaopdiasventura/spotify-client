@@ -1,46 +1,17 @@
-<header
-  class="sticky top-0 z-50 bg-black/95 backdrop-blur-sm border-b border-gray-800 px-3 md:px-6 py-3"
->
-  <div class="flex items-center gap-2 md:gap-4">
-    <button
-      (click)="onMenuClick()"
-      class="md:hidden rounded-full bg-black/40 hover:bg-gray-800 p-2 flex items-center justify-center"
-    >
-      <lucide-icon name="menu" class="h-5 w-5 text-white"></lucide-icon>
+<header class="app-header">
+  <div class="header-inner">
+    <button class="icon-btn menu-btn" (click)="onMenuClick()">
+      <lucide-icon name="menu"></lucide-icon>
     </button>
-    <div class="hidden md:flex items-center gap-2">
-      <button
-        class="rounded-full bg-black/40 hover:bg-gray-800 p-2 flex items-center justify-center"
-      >
-        <lucide-icon name="chevron-left" class="h-5 w-5 text-white"></lucide-icon>
-      </button>
-      <button
-        class="rounded-full bg-black/40 hover:bg-gray-800 p-2 flex items-center justify-center"
-      >
-        <lucide-icon name="chevron-right" class="h-5 w-5 text-white"></lucide-icon>
-      </button>
-    </div>
-    <div class="flex-1 max-w-md relative">
+    @if (showSearch) {
+    <div class="search">
       <input
         type="text"
         placeholder="O que você quer ouvir?"
-        class="pl-10 pr-10 bg-gray-800/50 border-0 text-white placeholder:text-gray-400 focus-visible:ring-2 focus-visible:ring-white rounded-full text-sm md:text-base w-full py-2"
-        [value]="searchQuery()"
-        (input)="searchQuery.set($any($event.target).value); onSearchChange()"
+        (input)="onSearchInput($any($event.target).value)"
       />
-      <lucide-icon
-        name="search"
-        class="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400"
-      ></lucide-icon>
-
-      @if (searchQuery()) {
-        <button
-          (click)="clearSearch()"
-          class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-        >
-          <lucide-icon name="x" class="h-4 w-4"></lucide-icon>
-        </button>
-      }
+      <lucide-icon name="search"></lucide-icon>
     </div>
+    }
   </div>
 </header>
