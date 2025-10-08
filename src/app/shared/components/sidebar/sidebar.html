@@ -1,61 +1,41 @@
-<aside class="w-64 bg-black flex flex-col h-full">
-  <div class="p-6 flex items-center justify-between">
-    <div class="flex items-center gap-2">
-      <i class="lucide lucide-music h-8 w-8 text-green-500"></i>
-      <span class="text-white">Etec GRU</span>
+<aside class="sidebar" (click)="handleClose()">
+  <div class="sidebar-header">
+    <div class="brand">
+      <lucide-icon name="music"></lucide-icon>
+      <span class="brand-name">Song Streaming</span>
     </div>
     @if (onClose) {
-    <button class="md:hidden text-gray-400 hover:text-white" (click)="handleClose()">
-      <i class="lucide lucide-x h-5 w-5"></i>
+    <button class="icon-btn close-btn">
+      <lucide-icon name="x"></lucide-icon>
     </button>
     }
   </div>
 
-  <nav class="px-6 space-y-4">
-    <div class="space-y-2">
-      <button
-        class="w-full justify-start text-white hover:text-white hover:bg-gray-800 p-3 flex items-center"
-        (click)="handleClose()"
-      >
-        <i class="lucide lucide-home h-5 w-5 mr-3"></i>
+  <nav class="nav">
+    <div class="nav-section">
+      <a routerLink="/home" class="nav-item">
+        <lucide-icon name="house"></lucide-icon>
         Início
-      </button>
-      <button
-        class="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-800 p-3 flex items-center"
-        (click)="handleClose()"
-      >
-        <i class="lucide lucide-search h-5 w-5 mr-3"></i>
-        Buscar
-      </button>
+      </a>
+      @if (currentUser()) {
+      <a routerLink="/user" class="nav-item">
+        <lucide-icon name="user"></lucide-icon>
+        Perfil
+      </a>
+      <a routerLink="/song/create" class="nav-item">
+        <lucide-icon name="upload"></lucide-icon>
+        Adicionar musica
+      </a>
+      } @else {
+      <a routerLink="/user/login" class="nav-item">
+        <lucide-icon name="log-in"></lucide-icon>
+        Entrar
+      </a>
+      <a routerLink="/user/create" class="nav-item">
+        <lucide-icon name="user-plus"></lucide-icon>
+        Criar conta
+      </a>
+      }
     </div>
   </nav>
-
-  <div class="flex-1 px-6 mt-6">
-    <div class="space-y-2">
-      <button
-        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
-        (click)="handleClose()"
-      >
-        Rock Classics
-      </button>
-      <button
-        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
-        (click)="handleClose()"
-      >
-        Chill Vibes
-      </button>
-      <button
-        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
-        (click)="handleClose()"
-      >
-        Electronic Beats
-      </button>
-      <button
-        class="w-full text-left text-gray-400 hover:text-white p-2 rounded text-sm"
-        (click)="handleClose()"
-      >
-        Jazz Essentials
-      </button>
-    </div>
-  </div>
 </aside>

@@ -1,0 +1,93 @@
+<section class="auth">
+  <div class="auth-card">
+    <div class="auth-header">
+      <lucide-icon name="music"></lucide-icon>
+      <h1>Criar conta</h1>
+      <p>Comece sua jornada musical</p>
+    </div>
+
+    @if (error) {
+    <div class="alert">{{ error }}</div>
+    }
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="name">Nome</label>
+        <div class="input-wrap">
+          <lucide-icon name="user"></lucide-icon>
+          <input id="name" type="text" formControlName="name" placeholder="Digite seu nome" />
+        </div>
+        @if (f["name"].touched && f["name"].errors) {
+        <small class="error">
+          @switch (true) { @case (f["name"].errors['required']) {
+          <span>Informe seu nome.</span>
+          } @case (f["name"].errors['minlength']) {
+          <span>Mínimo de 2 caracteres.</span>
+          } }
+        </small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="email">Email</label>
+        <div class="input-wrap">
+          <lucide-icon name="mail"></lucide-icon>
+          <input id="email" type="email" formControlName="email" placeholder="Digite seu email" />
+        </div>
+        @if (f["email"].touched && f["email"].errors) {
+        <small class="error">
+          @switch (true) { @case (f["email"].errors['required']) {
+          <span>Informe seu email.</span>
+          } @case (f["email"].errors['email']) {
+          <span>Email inválido.</span>
+          } }
+        </small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="password">Senha</label>
+        <div class="input-wrap">
+          <lucide-icon name="lock"></lucide-icon>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            placeholder="Digite sua senha"
+          />
+        </div>
+        @if (f["password"].touched && f["password"].errors) {
+        <small class="error">
+          @switch (true) { @case (f["password"].errors['required']) {
+          <span>Informe uma senha.</span>
+          } @case (f["password"].errors['minlength']) {
+          <span>Mínimo de 6 caracteres.</span>
+          } }
+        </small>
+        }
+      </div>
+
+      <div class="field">
+        <label for="confirm">Confirmar senha</label>
+        <div class="input-wrap">
+          <lucide-icon name="lock"></lucide-icon>
+          <input
+            id="confirm"
+            type="password"
+            formControlName="confirmPassword"
+            placeholder="Confirme sua senha"
+          />
+        </div>
+        @if ((form.touched && form.errors?.['mismatch']) || (f['confirmPassword'].touched &&
+        f['confirmPassword'].errors)) {
+        <small class="error">As senhas não conferem.</small>
+        }
+      </div>
+
+      <div class="actions">
+        <a routerLink="/user/login" class="muted">Já tenho conta</a>
+        <button class="btn" type="submit" [disabled]="loading">Criar conta</button>
+      </div>
+    </form>
+  </div>
+</section>

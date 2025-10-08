@@ -1,0 +1,79 @@
+@use '../../../../styles/tokens' as *;
+
+.app-header {
+  height: 7.2vh;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba($color-bg, 0.85);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid $color-border;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 $space-4;
+  max-width: $container;
+  margin: 0 auto;
+  @include gaps($space-2, $space-3);
+
+  @include up($bp-md) {
+    height: 64px;
+  }
+}
+
+.menu-btn {
+  @include up($bp-md) {
+    display: none;
+  }
+}
+
+.nav-controls {
+  display: none;
+  @include up($bp-md) {
+    display: inline-flex;
+    gap: $space-2;
+  }
+}
+
+.search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  max-width: 520px;
+  margin-left: auto;
+
+  lucide-icon {
+    position: absolute;
+    left: $space-3;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: $color-muted;
+  }
+
+  input {
+    width: 100%;
+    padding: $space-2 $space-3;
+    padding-left: 36px;
+    background: $color-elev;
+    border: 1px solid $color-border;
+    border-radius: $radius-full;
+    color: $color-text;
+    font-size: $fs-sm;
+    outline: none;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+
+    &::placeholder {
+      color: $color-muted;
+    }
+
+    &:focus {
+      box-shadow: 0 0 0 1px rgba($color-muted, 0.2);
+    }
+  }
+}
