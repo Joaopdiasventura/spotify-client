@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import {
   FormBuilder,
   Validators,
@@ -11,6 +11,8 @@ import { AuthService } from '../../../../core/services/user/auth/auth.service';
 import { UserService } from '../../../../core/services/user/user.service';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
+import { ModalConfig } from '../../../../shared/interfaces/modal-config';
+import { Modal } from '../../../../shared/components/modal/modal';
 
 function matchPasswords(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -20,7 +22,7 @@ function matchPasswords(control: AbstractControl): ValidationErrors | null {
 
 @Component({
   selector: 'app-create-page',
-  imports: [LucideAngularModule, RouterLink, ReactiveFormsModule],
+  imports: [LucideAngularModule, RouterLink, ReactiveFormsModule, Modal],
   templateUrl: './create-page.html',
   styleUrl: './create-page.scss',
 })
@@ -30,14 +32,23 @@ export class CreatePage {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  public error: string | null = null;
-  public loading = false;
+  public loading = signal(false);
+
+  public modalConfig = signal<ModalConfig | null>(null);
 
   public form = this.fb.group(
     {
       name: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]],
+      password: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(
+            /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&_])[A-Za-z\d@$!%*?&_]{8,}$/
+          ),
+        ],
+      ],
       confirmPassword: ['', [Validators.required]],
     },
     { validators: matchPasswords }
@@ -48,12 +59,11 @@ export class CreatePage {
   }
 
   public submit(): void {
-    this.error = null;
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.loading = true;
+    this.loading.set(true);
     const { name, email, password } = this.form.value as {
       name: string;
       email: string;
@@ -66,10 +76,13 @@ export class CreatePage {
         this.router.navigateByUrl('/home');
       },
       error: (err) => {
-        this.error = err?.error?.message ?? 'Não foi possível criar sua conta.';
-        this.loading = false;
+        this.modalConfig.set({
+          title: 'Erro',
+          content: err?.error?.message ?? 'Não foi possível criar sua conta.',
+        });
+        this.loading.set(false);
       },
-      complete: () => (this.loading = false),
+      complete: () => this.loading.set(false),
     });
   }
 }

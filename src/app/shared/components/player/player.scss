@@ -1,3 +1,11 @@
 @use '../../../../styles/tokens' as *;
 
 // Component-specific hooks can live here if needed.
+
+.default {
+  color: $color-text;
+}
+
+.active {
+  color: $color-primary;
+}

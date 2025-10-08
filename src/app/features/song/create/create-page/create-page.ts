@@ -1,3 +1,4 @@
+import { Modal } from './../../../../shared/components/modal/modal';
 import { Component, OnDestroy, inject, OnInit, signal } from '@angular/core';
 import { Sidebar } from '../../../../shared/components/sidebar/sidebar';
 import { SongService } from '../../../../core/services/song/song.service';
@@ -7,10 +8,11 @@ import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angula
 import { LucideAngularModule } from 'lucide-angular';
 import { Router, RouterLink } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
+import { ModalConfig } from '../../../../shared/interfaces/modal-config';
 
 @Component({
   selector: 'app-create-page',
-  imports: [Sidebar, Header, ReactiveFormsModule, LucideAngularModule, RouterLink],
+  imports: [Sidebar, Header, Modal, ReactiveFormsModule, LucideAngularModule, RouterLink],
   templateUrl: './create-page.html',
   styleUrl: './create-page.scss',
 })
@@ -22,6 +24,7 @@ export class CreatePage implements OnInit, OnDestroy {
   public audioName = signal<string | null>(null);
   public duration = signal<number>(0);
   public previewUrl = signal<string | null>(null);
+  public modalConfig = signal<ModalConfig | null>(null);
 
   private currentUser: User | null = null;
 
@@ -136,7 +139,10 @@ export class CreatePage implements OnInit, OnDestroy {
     this.songService.create(fd).subscribe({
       next: () => this.router.navigateByUrl('/home'),
       error: (err) => {
-        this.error.set(err?.error?.message ?? 'Não foi possível criar a música.');
+        this.modalConfig.set({
+          title: 'Erro ao adicionar musica',
+          content: err?.error?.message ?? 'Não foi possível criar a música.',
+        });
         this.submitting.set(false);
       },
       complete: () => this.submitting.set(false),
