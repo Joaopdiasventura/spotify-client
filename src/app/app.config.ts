@@ -32,6 +32,7 @@ import {
   Lock,
   Upload,
   Image,
+  LogOut,
 } from 'lucide-angular';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 
@@ -66,6 +67,7 @@ export const appConfig: ApplicationConfig = {
         ChevronLeft,
         ChevronRight,
         Menu,
+        LogOut,
       })
     ),
   ],
