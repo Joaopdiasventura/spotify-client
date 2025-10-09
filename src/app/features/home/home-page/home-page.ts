@@ -48,6 +48,7 @@ export class HomePage implements OnDestroy {
         .findMany({
           limit: this.limit,
           title: search,
+          artist: search,
           page,
           orderBy: search ? 'title:asc' : 'createdAt:desc',
         })

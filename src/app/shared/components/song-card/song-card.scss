@@ -79,12 +79,15 @@
 .meta {
   flex: 1;
   min-width: 0;
+  /* Ensure children can truncate with ellipsis */
+  overflow: hidden;
 }
 
 .title {
   margin: 0;
   color: $color-text;
   font-size: $fs-sm;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -110,6 +113,7 @@
 .artist {
   color: $color-muted;
   font-size: $fs-xs;
+  max-width: 100%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
