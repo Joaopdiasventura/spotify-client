@@ -139,3 +139,7 @@
     </main>
   </div>
 </div>
+
+@if (modalConfig()) {
+<app-modal [config]="modalConfig()!" (close)="modalConfig.set(null)" />
+}

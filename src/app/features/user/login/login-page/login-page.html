@@ -6,10 +6,6 @@
       <p>Acesse sua conta para continuar</p>
     </div>
 
-    @if (error) {
-    <div class="alert">{{ error }}</div>
-    }
-
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
         <label for="email">Email</label>
@@ -43,8 +39,11 @@
         <small class="error">
           @switch (true) { @case (f['password'].errors['required']) {
           <span>Informe sua senha.</span>
-          } @case (f['password'].errors['minlength']) {
-          <span>Mínimo de 6 caracteres.</span>
+          } @case (f['password'].invalid) {
+          <span
+            >Digite uma senha com ao menos 8 caracteres, incluindo letras maiúsculas, minúsculas,
+            números e símbolos</span
+          >
           } }
         </small>
         }
@@ -52,7 +51,7 @@
 
       <div class="actions">
         <a routerLink="user/reset-password" class="muted">Esqueci minha senha</a>
-        <button class="btn" type="submit" [disabled]="loading">Entrar</button>
+        <button class="btn" type="submit" [disabled]="loading()">Entrar</button>
       </div>
     </form>
 
@@ -62,3 +61,6 @@
     </div>
   </div>
 </section>
+@if (modalConfig()) {
+<app-modal [config]="modalConfig()!" (close)="modalConfig.set(null)" />
+}

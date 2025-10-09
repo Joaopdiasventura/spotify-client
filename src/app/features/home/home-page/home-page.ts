@@ -48,6 +48,7 @@ export class HomePage implements OnDestroy {
         .findMany({
           limit: this.limit,
           title: search,
+          artist: search,
           page,
           orderBy: search ? 'title:asc' : 'createdAt:desc',
         })
@@ -129,6 +130,10 @@ export class HomePage implements OnDestroy {
 
   public ngOnDestroy(): void {
     this.observer?.disconnect();
+  }
+
+  public handlePlayerLoadMore(): void {
+    this.loadMore();
   }
 
   private setupObserver(): void {

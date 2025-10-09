@@ -2,7 +2,6 @@
 
 @if (currentSong) {
   <div class="player">
-    <!-- Header com o botão X -->
     <div class="player-header">
       <h4>Tocando agora</h4>
       <button class="close-btn" (click)="onClose()" title="Parar e fechar player">
@@ -20,7 +19,7 @@
 
     <div class="center">
       <div class="controls-row">
-        <button class="icon-btn" (click)="toggleShuffle()">
+        <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle()">
           <lucide-icon name="shuffle"></lucide-icon>
         </button>
         <button class="icon-btn" (click)="onPrev()">
@@ -32,7 +31,7 @@
         <button class="icon-btn" (click)="onNext()">
           <lucide-icon name="skip-forward"></lucide-icon>
         </button>
-        <button class="icon-btn" (click)="toggleLoop()">
+        <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop()">
           <lucide-icon name="repeat"></lucide-icon>
         </button>
       </div>
@@ -43,7 +42,9 @@
           [min]="0"
           [max]="currentSong.duration"
           [value]="currentTime()"
-          [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
+          [style.--progress]="
+            (currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'
+          "
           (input)="onSeek($event.target.valueAsNumber)"
         />
         <span class="time">{{ formatTime(currentSong.duration) }}</span>

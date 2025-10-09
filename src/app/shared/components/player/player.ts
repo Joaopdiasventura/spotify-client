@@ -14,14 +14,14 @@ import {
   AfterViewInit,
 } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { isPlatformBrowser } from '@angular/common';
+import { isPlatformBrowser, NgClass } from '@angular/common';
 import { Song } from '../../../core/models/song';
 import { SongChunk } from '../../../core/models/song-chunk';
 import { SongChunkService } from '../../../core/services/song-chunk/song-chunk.service';
 
 @Component({
   selector: 'app-player',
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, NgClass],
   templateUrl: './player.html',
   styleUrls: ['./player.scss'],
 })
@@ -30,7 +30,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   @Input({ required: true }) public currentIndex = -1;
   @Input({ required: true }) public isPlaying = false;
   @Output() public playEvent = new EventEmitter<number>();
-  @Output() public closeEvent = new EventEmitter<void>(); // Novo output
+  @Output() public closeEvent = new EventEmitter<void>();
+  @Output() public loadMore = new EventEmitter<void>();
 
   @ViewChild('audio', { static: true }) public audioRef!: ElementRef<HTMLAudioElement>;
 
@@ -60,6 +61,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   private seekTargetTime = 0;
   private objectUrl: string | null = null;
   private firstAppendDone = false;
+  private pendingAdvanceAfterLoad = false;
 
   public get currentSong(): Song | null {
     if (!this.playlist) return null;
@@ -82,7 +84,17 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['playlist']) this.rebuildOrder();
+    if (changes['playlist']) {
+      this.rebuildOrder();
+      if (this.pendingAdvanceAfterLoad) {
+        const nextIdx = this.computeNextIndex();
+        if (nextIdx != null) {
+          this.pendingAdvanceAfterLoad = false;
+          this.playEvent.emit(nextIdx);
+          return;
+        }
+      }
+    }
     if ((changes['playlist'] || changes['currentIndex']) && isPlatformBrowser(this.platform))
       if (this.currentSong) this.handleSongChange();
   }
@@ -220,7 +232,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   public onNext(): void {
     if (!this.playlist || !this.playlist.length) return;
     const newIndex = this.computeNextIndex();
-    if (newIndex === null) return;
+    if (newIndex == null) {
+      this.pendingAdvanceAfterLoad = true;
+      this.loadMore.emit();
+      return;
+    }
     this.playEvent.emit(newIndex);
   }
 
@@ -234,7 +250,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     if (hadNext) this.onNext();
     else {
       this.isPlaying = false;
-      this.playEvent.emit(this.currentIndex);
+      this.pendingAdvanceAfterLoad = true;
+      this.loadMore.emit();
     }
   }
 

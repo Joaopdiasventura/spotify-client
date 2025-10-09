@@ -5,11 +5,6 @@
       <h1>Criar conta</h1>
       <p>Comece sua jornada musical</p>
     </div>
-
-    @if (error) {
-    <div class="alert">{{ error }}</div>
-    }
-
     <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
         <label for="name">Nome</label>
@@ -60,8 +55,11 @@
         <small class="error">
           @switch (true) { @case (f["password"].errors['required']) {
           <span>Informe uma senha.</span>
-          } @case (f["password"].errors['minlength']) {
-          <span>Mínimo de 6 caracteres.</span>
+          } @case (f["password"].invalid) {
+          <span
+            >Digite uma senha com ao menos 8 caracteres, incluindo letras maiúsculas, minúsculas,
+            números e símbolos</span
+          >
           } }
         </small>
         }
@@ -86,8 +84,11 @@
 
       <div class="actions">
         <a routerLink="/user/login" class="muted">Já tenho conta</a>
-        <button class="btn" type="submit" [disabled]="loading">Criar conta</button>
+        <button class="btn" type="submit" [disabled]="loading()">Criar conta</button>
       </div>
     </form>
   </div>
 </section>
+@if (modalConfig()) {
+<app-modal [config]="modalConfig()!" (close)="modalConfig.set(null)" />
+}
