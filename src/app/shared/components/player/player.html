@@ -2,6 +2,14 @@
 
 @if (currentSong) {
   <div class="player">
+    <!-- Header com o botão X -->
+    <div class="player-header">
+      <h4>Tocando agora</h4>
+      <button class="close-btn" (click)="onClose()" title="Parar e fechar player">
+        <lucide-icon name="x"></lucide-icon>
+      </button>
+    </div>
+
     <div class="left">
       <img [src]="currentSong.thumbnail" [alt]="currentSong.title + ' album cover'" />
       <div class="text">
@@ -9,6 +17,7 @@
         <p class="artist">{{ currentSong.artist }}</p>
       </div>
     </div>
+
     <div class="center">
       <div class="controls-row">
         <button class="icon-btn" (click)="toggleShuffle()">
@@ -40,6 +49,7 @@
         <span class="time">{{ formatTime(currentSong.duration) }}</span>
       </div>
     </div>
+
     <div class="right">
       <lucide-icon name="volume-2"></lucide-icon>
       <input
