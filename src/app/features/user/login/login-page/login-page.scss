@@ -19,6 +19,8 @@
 }
 
 .auth-header {
+  position: relative;
+  padding-top: 1rem;
   text-align: center;
   margin-bottom: $space-6;
   color: $color-text;
@@ -146,4 +148,32 @@ input[type='password'] {
 }
 .auth-footer a {
   color: $color-text;
+}
+
+.back-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background-color: transparent;
+  border: 1px solid $color-border;
+  border-radius: 50%;
+  color: $color-muted;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-button:hover {
+  background-color: $color-elev;
+  border-color: $color-primary;
+  color: $color-text;
+}
+
+.back-button lucide-icon {
+  width: 1.25rem;
+  height: 1.25rem;
 }
