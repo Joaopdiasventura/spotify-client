@@ -109,7 +109,6 @@ export class HomePage implements OnDestroy {
     });
   }
 
-  // Adicione este método para fechar o player
   public onPlayerClose(): void {
     this.currentIndex.set(-1);
     this.isPlaying.set(false);

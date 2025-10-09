@@ -17,121 +17,123 @@
           <div class="alert">{{ error() }}</div>
           }
 
-          <form (ngSubmit)="submit()" [formGroup]="form" novalidate class="create-form">
-            <div class="grid">
-              <div class="field">
-                <label for="title">Título</label>
-                <input
-                  id="title"
-                  type="text"
-                  placeholder="Nome da música"
-                  formControlName="title"
-                />
-                @if (f["title"].touched && f["title"].errors) {
-                <small class="error">
-                  @switch (true) { @case (f["title"].errors['required']) {
-                  <span>Informe o título.</span>
-                  } @case (f["title"].errors['minlength']) {
-                  <span>Mínimo de 2 caracteres.</span>
-                  } }
-                </small>
-                }
-              </div>
-
-              <div class="field">
-                <label for="artist">Artista</label>
-                <input
-                  id="artist"
-                  type="text"
-                  placeholder="Nome do artista"
-                  formControlName="artist"
-                />
-                @if (f["artist"].touched && f["artist"].errors) {
-                <small class="error">
-                  @switch (true) { @case (f["artist"].errors['required']) {
-                  <span>Informe o artista.</span>
-                  } @case (f["artist"].errors['minlength']) {
-                  <span>Mínimo de 2 caracteres.</span>
-                  } }
-                </small>
-                }
-              </div>
-
-              <div class="field">
-                <label for="description">Descrição</label>
-                <textarea
-                  id="description"
-                  rows="5"
-                  placeholder="Breve descrição"
-                  formControlName="description"
-                ></textarea>
-              </div>
-
-              <div class="field">
-                <label for="lyrics">Letra</label>
-                <textarea
-                  id="lyrics"
-                  rows="5"
-                  placeholder="Letra da música"
-                  formControlName="lyrics"
-                ></textarea>
-              </div>
-
-              <div class="field">
-                <label>Thumbnail</label>
-                <div class="file-input">
+          <div class="form-scroll-container">
+            <form (ngSubmit)="submit()" [formGroup]="form" novalidate class="create-form">
+              <div class="grid">
+                <div class="field">
+                  <label for="title">Título</label>
                   <input
-                    id="thumbFile"
-                    class="visually-hidden"
-                    type="file"
-                    accept="image/*"
-                    (change)="onThumbChange($event)"
+                    id="title"
+                    type="text"
+                    placeholder="Nome da música"
+                    formControlName="title"
                   />
-                  <label class="file-trigger" for="thumbFile">
-                    <lucide-icon name="image"></lucide-icon>
-                    <span>Selecionar imagem</span>
-                  </label>
-                  <small class="hint">PNG ou JPG recomendado. Tamanho até 2MB.</small>
+                  @if (f["title"].touched && f["title"].errors) {
+                  <small class="error">
+                    @switch (true) { @case (f["title"].errors['required']) {
+                    <span>Informe o título.</span>
+                    } @case (f["title"].errors['minlength']) {
+                    <span>Mínimo de 2 caracteres.</span>
+                    } }
+                  </small>
+                  }
                 </div>
-                @if (f['thumbnail'].touched && f['thumbnail'].errors) {
-                <small class="error">Selecione uma imagem.</small>
-                } @if (previewThumb()) {
-                <img class="thumb" [src]="previewThumb()!" alt="Pré-visualização da imagem" />
-                }
-              </div>
 
-              <div class="field">
-                <label>Áudio</label>
-                <div class="file-input">
+                <div class="field">
+                  <label for="artist">Artista</label>
                   <input
-                    id="audioFile"
-                    class="visually-hidden"
-                    type="file"
-                    accept="audio/*"
-                    (change)="onAudioChange($event)"
+                    id="artist"
+                    type="text"
+                    placeholder="Nome do artista"
+                    formControlName="artist"
                   />
-                  <label class="file-trigger" for="audioFile">
-                    <lucide-icon name="music"></lucide-icon>
-                    <span>Selecionar áudio</span>
-                  </label>
-                  <small class="hint">MP3/AAC/OGG. Tamanho até 10MB.</small>
+                  @if (f["artist"].touched && f["artist"].errors) {
+                  <small class="error">
+                    @switch (true) { @case (f["artist"].errors['required']) {
+                    <span>Informe o artista.</span>
+                    } @case (f["artist"].errors['minlength']) {
+                    <span>Mínimo de 2 caracteres.</span>
+                    } }
+                  </small>
+                  }
                 </div>
-                @if (f["file"].touched && f["file"].errors) {
-                <small class="error">Selecione um arquivo de áudio.</small>
-                } @if (audioName()) {
-                <small class="muted">{{ audioName() }} - {{ duration() }}s</small> } @if
-                (previewUrl()) {
-                <div class="player-box">
-                  <audio controls [src]="previewUrl()!"></audio>
+
+                <div class="field">
+                  <label for="description">Descrição</label>
+                  <textarea
+                    id="description"
+                    rows="5"
+                    placeholder="Breve descrição"
+                    formControlName="description"
+                  ></textarea>
                 </div>
-                }
+
+                <div class="field">
+                  <label for="lyrics">Letra</label>
+                  <textarea
+                    id="lyrics"
+                    rows="5"
+                    placeholder="Letra da música"
+                    formControlName="lyrics"
+                  ></textarea>
+                </div>
+
+                <div class="field">
+                  <label>Thumbnail</label>
+                  <div class="file-input">
+                    <input
+                      id="thumbFile"
+                      class="visually-hidden"
+                      type="file"
+                      accept="image/*"
+                      (change)="onThumbChange($event)"
+                    />
+                    <label class="file-trigger" for="thumbFile">
+                      <lucide-icon name="image"></lucide-icon>
+                      <span>Selecionar imagem</span>
+                    </label>
+                    <small class="hint">PNG ou JPG recomendado. Tamanho até 2MB.</small>
+                  </div>
+                  @if (f['thumbnail'].touched && f['thumbnail'].errors) {
+                  <small class="error">Selecione uma imagem.</small>
+                  } @if (previewThumb()) {
+                  <img class="thumb" [src]="previewThumb()!" alt="Pré-visualização da imagem" />
+                  }
+                </div>
+
+                <div class="field">
+                  <label>Áudio</label>
+                  <div class="file-input">
+                    <input
+                      id="audioFile"
+                      class="visually-hidden"
+                      type="file"
+                      accept="audio/*"
+                      (change)="onAudioChange($event)"
+                    />
+                    <label class="file-trigger" for="audioFile">
+                      <lucide-icon name="music"></lucide-icon>
+                      <span>Selecionar áudio</span>
+                    </label>
+                    <small class="hint">MP3/AAC/OGG. Tamanho até 10MB.</small>
+                  </div>
+                  @if (f["file"].touched && f["file"].errors) {
+                  <small class="error">Selecione um arquivo de áudio.</small>
+                  } @if (audioName()) {
+                  <small class="muted">{{ audioName() }} - {{ duration() }}s</small> } @if
+                  (previewUrl()) {
+                  <div class="player-box">
+                    <audio controls [src]="previewUrl()!"></audio>
+                  </div>
+                  }
+                </div>
               </div>
-            </div>
-            <div class="actions">
-              <a routerLink="/home" class="muted">Cancelar</a>
-              <button class="btn" type="submit" [disabled]="submitting()">Enviar</button>
-            </div>
-          </form>
+              <div class="actions">
+                <a routerLink="/home" class="muted">Cancelar</a>
+                <button class="btn" type="submit" [disabled]="submitting()">Enviar</button>
+              </div>
+            </form>
+          </div>
         </section>
       </div>
     </main>
