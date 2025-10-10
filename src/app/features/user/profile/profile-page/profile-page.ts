@@ -63,17 +63,15 @@ export class ProfilePage implements OnDestroy {
 
   // Inicializar o currentUser com modificador de acesso
   public constructor() {
-    this.user$.subscribe(user => {
+    this.user$.subscribe((user) => {
       this.currentUser.set(user);
     });
   }
 
   // User's songs
-  private readonly userSongsParams$ = combineLatest([
-    this.search$,
-    this.page$,
-    this.user$
-  ]).pipe(shareReplay(1));
+  private readonly userSongsParams$ = combineLatest([this.search$, this.page$, this.user$]).pipe(
+    shareReplay(1)
+  );
 
   private readonly userSongsPageResult$ = this.userSongsParams$.pipe(
     switchMap(([search, page, user]) => {
@@ -90,7 +88,11 @@ export class ProfilePage implements OnDestroy {
         .pipe(
           map((list: Song[]) => {
             // Filtrar apenas músicas do usuário atual no frontend
-            const userSongs = list.filter(song => song.user === user._id);
+            const userSongs = list.filter((song) => {
+              const isUserSong = song.user === user._id;
+              return isUserSong;
+            });
+
             return { page, list: userSongs };
           })
         );
@@ -109,12 +111,12 @@ export class ProfilePage implements OnDestroy {
   // User's playlists - filtrar no frontend
   public readonly userPlaylists$ = combineLatest([
     this.playlistService.getUserPlaylists(),
-    this.user$
+    this.user$,
   ]).pipe(
     map(([playlists, user]) => {
       if (!user) return [];
       // Filtrar playlists do usuário atual
-      return playlists.filter(playlist => playlist.owner === user._id);
+      return playlists.filter((playlist) => playlist.owner === user._id);
     }),
     shareReplay(1)
   );
@@ -240,7 +242,7 @@ export class ProfilePage implements OnDestroy {
         if (!list || list.length === 0) return;
         // Filtrar apenas músicas do usuário atual
         const currentUser = this.currentUser();
-        const userSongs = list.filter(song => song.user === currentUser?._id);
+        const userSongs = list.filter((song) => song.user === currentUser?._id);
         const merged = [...this.playerPlaylist(), ...userSongs];
         this.playerPlaylist.set(merged);
       });
