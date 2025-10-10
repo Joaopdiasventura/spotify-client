@@ -123,6 +123,10 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
           const nextIdx = this.computeNextIndex();
           if (nextIdx != null) {
             this.pendingAdvanceAfterLoad = false;
+            // ensure autoplay when new items were loaded
+            this.isPlaying = true;
+            this.updateMediaSessionPlaybackState();
+            this.playingChange.emit(true);
             this.playEvent.emit(nextIdx);
             this.lastPlaylistLength = len;
             return;
@@ -158,7 +162,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
 
   public onSeek(t: number): void {
     if (!this.audio) return;
-    const time = Math.max(0, Math.min(t, this.totalDuration || t));
+    let time = Math.max(0, Math.min(t, this.totalDuration || t));
+    time = this.clampToLastChunkStart(time);
     const delta = Math.abs(time - this.audio.currentTime);
     const idx = this.findChunkByTime(time);
     const curIdx = this.findChunkByTime(this.audio.currentTime);
@@ -314,8 +319,13 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       if (this.currentIndex + 1 < this.playlist.length) return true;
       return this.loop();
     })();
-    if (hadNext) this.onNext();
-    else {
+    if (hadNext) {
+      // force autoplay for the next track
+      this.isPlaying = true;
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(true);
+      this.onNext();
+    } else {
       this.isPlaying = false;
       // Auto-load quando acabar sem próxima
       if (!this.pendingAdvanceAfterLoad && !this.noMoreAfterLoad) {
@@ -445,7 +455,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       (this.chunkStarts[prevIndex] ?? 0) + (this.chunkDurations[prevIndex] ?? 0) * 0.55;
     const fn = (): void => {
       if (session !== this.sessionId) {
-        try { this.audio.removeEventListener('timeupdate', fn); } catch (_e) { this.noop(_e); }
+        try {
+          this.audio.removeEventListener('timeupdate', fn);
+        } catch (_e) {
+          this.noop(_e);
+        }
         this.scheduledTimeUpdateHandlers.delete(fn);
         return;
       }
@@ -501,7 +515,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     return new Promise((resolve) => {
       const h = (): void => {
         if (session !== this.sessionId) {
-          try { this.sourceBuffer.removeEventListener('updateend', h); } catch (_e) { this.noop(_e); }
+          try {
+            this.sourceBuffer.removeEventListener('updateend', h);
+          } catch (_e) {
+            this.noop(_e);
+          }
           resolve();
           return;
         }
@@ -522,6 +540,14 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       if (t >= s && t < e) return i;
     }
     return Math.max(0, this.chunkStarts.length - 1);
+  }
+
+  // If the seek target is within or after the last chunk, snap to its start
+  private clampToLastChunkStart(time: number): number {
+    if (!this.chunkStarts.length) return time;
+    const lastStart = this.chunkStarts[this.chunkStarts.length - 1] ?? 0;
+    const snapPoint = Math.max(0, lastStart - 1);
+    return time >= lastStart ? snapPoint : time;
   }
 
   private cancelPendingWork(): void {
