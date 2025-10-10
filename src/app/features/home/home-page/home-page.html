@@ -20,8 +20,8 @@
           <app-song-card
             [song]="song"
             [index]="i"
-            [isPlaying]="currentIndex() == i && isPlaying()"
-            (playEvent)="handlePlay($event)"
+            [isPlaying]="isPlaying() && isCurrentSong(song)"
+            (playEvent)="handleCardPlay($event)"
           ></app-song-card>
           } @if (loading) { @for (n of skeletons; track n) {
           <div class="song-skeleton">
@@ -42,10 +42,10 @@
 
   @if (currentIndex() !== -1) {
     <app-player
-      [playlist]="songs$ | async"
+      [playlist]="playerPlaylist()"
       [currentIndex]="currentIndex()"
       [isPlaying]="isPlaying()"
-      (playEvent)="handlePlay($event)"
+      (playEvent)="handlePlayerIndexChange($event)"
       (closeEvent)="onPlayerClose()"
       (loadMore)="handlePlayerLoadMore()"
     ></app-player>

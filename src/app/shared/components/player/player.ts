@@ -18,6 +18,7 @@ import { isPlatformBrowser, NgClass } from '@angular/common';
 import { Song } from '../../../core/models/song';
 import { SongChunk } from '../../../core/models/song-chunk';
 import { SongChunkService } from '../../../core/services/song-chunk/song-chunk.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-player',
@@ -62,6 +63,14 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   private objectUrl: string | null = null;
   private firstAppendDone = false;
   private pendingAdvanceAfterLoad = false;
+  private lastPlaylistLength = 0;
+  private noMoreAfterLoad = false;
+
+  // Concurrency/session control fields
+  private sessionId = 0;
+  private activeFetchControllers = new Set<AbortController>();
+  private chunksSub?: Subscription;
+  private scheduledTimeUpdateHandlers = new Set<(ev: Event) => void>();
 
   public get currentSong(): Song | null {
     if (!this.playlist) return null;
@@ -80,20 +89,34 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     this.audio.volume = this.volume();
     this.audio.addEventListener('timeupdate', () => this.currentTime.set(this.audio.currentTime));
     this.audio.addEventListener('ended', () => this.onAudioEnded());
-    this.createMediaPipeline(0);
+    this.createMediaPipeline(0, this.sessionId);
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
     if (changes['playlist']) {
       this.rebuildOrder();
+      const len = this.playlist?.length ?? 0;
       if (this.pendingAdvanceAfterLoad) {
-        const nextIdx = this.computeNextIndex();
-        if (nextIdx != null) {
+        if (len > this.lastPlaylistLength) {
+          // Novos itens chegaram; tenta avançar
+          this.noMoreAfterLoad = false;
+          const nextIdx = this.computeNextIndex();
+          if (nextIdx != null) {
+            this.pendingAdvanceAfterLoad = false;
+            this.playEvent.emit(nextIdx);
+            this.lastPlaylistLength = len;
+            return;
+          }
+        } else {
+          // Nada novo chegou
+          this.noMoreAfterLoad = true;
           this.pendingAdvanceAfterLoad = false;
-          this.playEvent.emit(nextIdx);
-          return;
         }
+      } else {
+        // Reinicia flag quando playlist cresce sem estar pendente
+        if (len > this.lastPlaylistLength) this.noMoreAfterLoad = false;
       }
+      this.lastPlaylistLength = len;
     }
     if ((changes['playlist'] || changes['currentIndex']) && isPlatformBrowser(this.platform))
       if (this.currentSong) this.handleSongChange();
@@ -162,8 +185,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
 
   private handleSongChange(): void {
     if (!this.currentSong) return;
+    // Bump session and cancel any pending work to avoid race conditions
+    this.sessionId++;
+    this.cancelPendingWork();
     this.teardownMediaPipeline();
-    this.loadChunks(this.currentSong._id, 0);
+    this.loadChunks(this.currentSong._id, 0, this.sessionId);
   }
 
   private rebuildOrder(): void {
@@ -218,6 +244,19 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     return null;
   }
 
+  public get canNext(): boolean {
+    if (this.computeNextIndex() !== null) return true;
+    if (this.pendingAdvanceAfterLoad) return false;
+    return !this.noMoreAfterLoad;
+  }
+
+  public get canPrev(): boolean {
+    if (!this.audio) return this.computePrevIndex() !== null;
+    // allow going to start when > 3s
+    if (this.audio.currentTime > 3) return true;
+    return this.computePrevIndex() !== null;
+  }
+
   public onPrev(): void {
     if (!this.playlist || !this.playlist.length || !this.audio) return;
     if (this.audio.currentTime > 3) {
@@ -233,8 +272,12 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     if (!this.playlist || !this.playlist.length) return;
     const newIndex = this.computeNextIndex();
     if (newIndex == null) {
-      this.pendingAdvanceAfterLoad = true;
-      this.loadMore.emit();
+      // Sem próxima música disponível; tenta auto-carregar
+      if (!this.pendingAdvanceAfterLoad && !this.noMoreAfterLoad) {
+        this.pendingAdvanceAfterLoad = true;
+        this.lastPlaylistLength = this.playlist?.length ?? 0;
+        this.loadMore.emit();
+      }
       return;
     }
     this.playEvent.emit(newIndex);
@@ -250,12 +293,16 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     if (hadNext) this.onNext();
     else {
       this.isPlaying = false;
-      this.pendingAdvanceAfterLoad = true;
-      this.loadMore.emit();
+      // Auto-load quando acabar sem próxima
+      if (!this.pendingAdvanceAfterLoad && !this.noMoreAfterLoad) {
+        this.pendingAdvanceAfterLoad = true;
+        this.lastPlaylistLength = this.playlist?.length ?? 0;
+        this.loadMore.emit();
+      }
     }
   }
 
-  private createMediaPipeline(seekTo: number): void {
+  private createMediaPipeline(seekTo: number, session: number): void {
     this.mediaSource = new MediaSource();
     if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
     this.objectUrl = URL.createObjectURL(this.mediaSource);
@@ -264,10 +311,12 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     this.mediaSource.addEventListener(
       'sourceopen',
       () => {
+        if (session !== this.sessionId) return;
         this.mediaSource.duration = this.totalDuration || 1e6;
         this.sourceBuffer = this.mediaSource.addSourceBuffer('audio/mpeg');
         this.sourceBuffer.mode = 'sequence';
         this.sourceBuffer.addEventListener('updateend', () => {
+          if (session !== this.sessionId) return;
           if (!this.firstAppendDone) {
             this.firstAppendDone = true;
             const safe = Math.max(seekTo, (this.chunkStarts[this.currentChunkIndex] ?? 0) + 0.01);
@@ -275,11 +324,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
               this.audio.currentTime = safe;
             } finally {
               if (this.isPlaying) this.audio.play();
-              this.scheduleNextAppend(this.currentChunkIndex);
+              this.scheduleNextAppend(this.currentChunkIndex, session);
             }
           } else {
             const next = this.currentChunkIndex + 1;
-            if (next < this.chunks.length) this.scheduleNextAppend(this.currentChunkIndex);
+            if (next < this.chunks.length) this.scheduleNextAppend(this.currentChunkIndex, session);
             else this.mediaSource.endOfStream();
           }
         });
@@ -289,7 +338,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
         try {
           this.sourceBuffer.timestampOffset = offset;
         } finally {
-          this.appendChunk(idx);
+          this.appendChunk(idx, session);
         }
       },
       { once: true }
@@ -297,18 +346,28 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   private teardownMediaPipeline(): void {
+    // cancel pending work and listeners
+    this.cancelPendingWork();
     try {
       if (this.sourceBuffer && this.sourceBuffer.updating) this.sourceBuffer.abort();
     } catch {
-      return;
+      // ignore
     }
     try {
       if (this.mediaSource && this.mediaSource.readyState !== 'closed')
         this.mediaSource.endOfStream();
     } catch {
-      return;
+      // ignore
     }
     this.nextAppendScheduled = false;
+    this.firstAppendDone = false;
+    try {
+      if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
+    } catch {}
+    this.objectUrl = null;
+    try {
+      if (this.audio) this.audio.removeAttribute('src');
+    } catch {}
   }
 
   private hardSeek(time: number): void {
@@ -319,12 +378,14 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     this.isPlaying = wasPlaying;
     if (!this.audio.paused) this.audio.pause();
     this.teardownMediaPipeline();
-    this.createMediaPipeline(time);
+    this.createMediaPipeline(time, this.sessionId);
   }
 
-  private loadChunks(songId: string, seekTo: number): void {
-    this.songChunkService.findAllBySong(songId).subscribe({
+  private loadChunks(songId: string, seekTo: number, session: number): void {
+    try { this.chunksSub?.unsubscribe(); } catch {}
+    this.chunksSub = this.songChunkService.findAllBySong(songId).subscribe({
       next: async (chunks: SongChunk[]) => {
+        if (session !== this.sessionId) return;
         this.chunks = chunks;
         this.chunkDurations = chunks.map((c) => c.duration);
         if (!this.chunkDurations.every((v) => v > 0)) this.chunkDurations = chunks.map(() => 5);
@@ -336,12 +397,12 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
         }
         this.totalDuration = acc;
         this.currentChunkIndex = this.findChunkByTime(seekTo);
-        this.createMediaPipeline(seekTo);
+        this.createMediaPipeline(seekTo, session);
       },
     });
   }
 
-  private scheduleNextAppend(prevIndex: number): void {
+  private scheduleNextAppend(prevIndex: number, session: number): void {
     if (this.nextAppendScheduled) return;
     const next = prevIndex + 1;
     if (next >= this.chunks.length) return;
@@ -349,41 +410,67 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     const threshold =
       (this.chunkStarts[prevIndex] ?? 0) + (this.chunkDurations[prevIndex] ?? 0) * 0.55;
     const fn = (): void => {
+      if (session !== this.sessionId) {
+        try { this.audio.removeEventListener('timeupdate', fn); } catch {}
+        this.scheduledTimeUpdateHandlers.delete(fn);
+        return;
+      }
       if (this.audio.currentTime >= threshold) {
         this.audio.removeEventListener('timeupdate', fn);
+        this.scheduledTimeUpdateHandlers.delete(fn);
         this.nextAppendScheduled = false;
-        this.appendChunk(next);
+        this.appendChunk(next, session);
         this.currentChunkIndex = next;
       }
     };
     if (this.audio.currentTime >= threshold) {
       this.nextAppendScheduled = false;
-      this.appendChunk(next);
+      this.appendChunk(next, session);
       this.currentChunkIndex = next;
     } else {
       this.audio.addEventListener('timeupdate', fn);
+      this.scheduledTimeUpdateHandlers.add(fn);
     }
   }
 
-  private async appendChunk(index: number): Promise<void> {
+  private async appendChunk(index: number, session: number): Promise<void> {
     if (!this.mediaSource || index >= this.chunks.length) return;
+    if (session !== this.sessionId) return;
     const chunk = this.chunks[index];
-    const res = await fetch(chunk.url);
-    const buf = await res.arrayBuffer();
-    if (!this.sourceBuffer) return;
-    await this.waitNotUpdating();
+    const controller = new AbortController();
+    this.activeFetchControllers.add(controller);
+    let buf: ArrayBuffer | null = null;
     try {
+      const res = await fetch(chunk.url, { signal: controller.signal });
+      buf = await res.arrayBuffer();
+    } catch {
+      this.activeFetchControllers.delete(controller);
+      return;
+    }
+    this.activeFetchControllers.delete(controller);
+    if (session !== this.sessionId) return;
+    if (!this.sourceBuffer) return;
+    await this.waitNotUpdating(session);
+    try {
+      if (!buf) return;
+      if (!this.mediaSource || this.mediaSource.readyState !== 'open') return;
       this.sourceBuffer.appendBuffer(buf);
     } catch {
       return;
     }
   }
 
-  private waitNotUpdating(): Promise<void> {
+  private waitNotUpdating(session: number): Promise<void> {
+    if (session !== this.sessionId) return Promise.resolve();
     if (!this.sourceBuffer) return Promise.resolve();
     if (!this.sourceBuffer.updating) return Promise.resolve();
     return new Promise((resolve) => {
       const h = (): void => {
+        if (session !== this.sessionId) {
+          try { this.sourceBuffer.removeEventListener('updateend', h); } catch {}
+          resolve();
+          return;
+        }
         if (!this.sourceBuffer.updating) {
           this.sourceBuffer.removeEventListener('updateend', h);
           resolve();
@@ -401,5 +488,23 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       if (t >= s && t < e) return i;
     }
     return Math.max(0, this.chunkStarts.length - 1);
+  }
+
+  private cancelPendingWork(): void {
+    try { this.chunksSub?.unsubscribe(); } catch {}
+    this.chunksSub = undefined;
+    for (const c of this.activeFetchControllers) {
+      try { c.abort(); } catch {}
+    }
+    this.activeFetchControllers.clear();
+    try {
+      if (this.audio) {
+        for (const fn of this.scheduledTimeUpdateHandlers) {
+          try { this.audio.removeEventListener('timeupdate', fn); } catch {}
+        }
+      }
+    } catch {}
+    this.scheduledTimeUpdateHandlers.clear();
+    this.nextAppendScheduled = false;
   }
 }
