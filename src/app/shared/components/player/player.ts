@@ -20,6 +20,10 @@ import { SongChunk } from '../../../core/models/song-chunk';
 import { SongChunkService } from '../../../core/services/song-chunk/song-chunk.service';
 import { Subscription } from 'rxjs';
 
+type MediaSessionWithPosition = MediaSession & {
+  setPositionState?: (state?: MediaPositionState) => void;
+};
+
 @Component({
   selector: 'app-player',
   imports: [LucideAngularModule, NgClass],
@@ -33,6 +37,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   @Output() public playEvent = new EventEmitter<number>();
   @Output() public closeEvent = new EventEmitter<void>();
   @Output() public loadMore = new EventEmitter<void>();
+  @Output() public playingChange = new EventEmitter<boolean>();
 
   @ViewChild('audio', { static: true }) public audioRef!: ElementRef<HTMLAudioElement>;
 
@@ -87,9 +92,24 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     if (!isPlatformBrowser(this.platform)) return;
     this.audio = this.audioRef.nativeElement;
     this.audio.volume = this.volume();
-    this.audio.addEventListener('timeupdate', () => this.currentTime.set(this.audio.currentTime));
+    this.audio.addEventListener('timeupdate', () => {
+      this.currentTime.set(this.audio.currentTime);
+      this.updateMediaSessionPosition();
+    });
+    this.audio.addEventListener('play', () => {
+      this.isPlaying = true;
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(true);
+    });
+    this.audio.addEventListener('pause', () => {
+      this.isPlaying = false;
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(false);
+    });
     this.audio.addEventListener('ended', () => this.onAudioEnded());
     this.createMediaPipeline(0, this.sessionId);
+    this.setupMediaSession();
+    this.updateMediaSessionMetadata();
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
@@ -132,6 +152,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       this.isPlaying = false;
     }
     this.playEvent.emit(this.currentIndex);
+    this.updateMediaSessionPlaybackState();
+    this.playingChange.emit(this.isPlaying);
   }
 
   public onSeek(t: number): void {
@@ -181,6 +203,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
 
     // Emite o evento para o componente pai
     this.closeEvent.emit();
+    this.playingChange.emit(false);
   }
 
   private handleSongChange(): void {
@@ -190,6 +213,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     this.cancelPendingWork();
     this.teardownMediaPipeline();
     this.loadChunks(this.currentSong._id, 0, this.sessionId);
+    this.updateMediaSessionMetadata();
   }
 
   private rebuildOrder(): void {
@@ -299,6 +323,8 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
         this.lastPlaylistLength = this.playlist?.length ?? 0;
         this.loadMore.emit();
       }
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(false);
     }
   }
 
@@ -363,11 +389,15 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     this.firstAppendDone = false;
     try {
       if (this.objectUrl) URL.revokeObjectURL(this.objectUrl);
-    } catch {}
+    } catch (_e) {
+      this.noop(_e);
+    }
     this.objectUrl = null;
     try {
       if (this.audio) this.audio.removeAttribute('src');
-    } catch {}
+    } catch (_e) {
+      this.noop(_e);
+    }
   }
 
   private hardSeek(time: number): void {
@@ -382,7 +412,11 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   private loadChunks(songId: string, seekTo: number, session: number): void {
-    try { this.chunksSub?.unsubscribe(); } catch {}
+    try {
+      this.chunksSub?.unsubscribe();
+    } catch (_e) {
+      this.noop(_e);
+    }
     this.chunksSub = this.songChunkService.findAllBySong(songId).subscribe({
       next: async (chunks: SongChunk[]) => {
         if (session !== this.sessionId) return;
@@ -411,7 +445,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       (this.chunkStarts[prevIndex] ?? 0) + (this.chunkDurations[prevIndex] ?? 0) * 0.55;
     const fn = (): void => {
       if (session !== this.sessionId) {
-        try { this.audio.removeEventListener('timeupdate', fn); } catch {}
+        try { this.audio.removeEventListener('timeupdate', fn); } catch (_e) { this.noop(_e); }
         this.scheduledTimeUpdateHandlers.delete(fn);
         return;
       }
@@ -467,7 +501,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     return new Promise((resolve) => {
       const h = (): void => {
         if (session !== this.sessionId) {
-          try { this.sourceBuffer.removeEventListener('updateend', h); } catch {}
+          try { this.sourceBuffer.removeEventListener('updateend', h); } catch (_e) { this.noop(_e); }
           resolve();
           return;
         }
@@ -491,20 +525,145 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   }
 
   private cancelPendingWork(): void {
-    try { this.chunksSub?.unsubscribe(); } catch {}
+    try {
+      this.chunksSub?.unsubscribe();
+    } catch (_e) {
+      this.noop(_e);
+    }
     this.chunksSub = undefined;
     for (const c of this.activeFetchControllers) {
-      try { c.abort(); } catch {}
+      try {
+        c.abort();
+      } catch (_e) {
+        this.noop(_e);
+      }
     }
     this.activeFetchControllers.clear();
     try {
       if (this.audio) {
         for (const fn of this.scheduledTimeUpdateHandlers) {
-          try { this.audio.removeEventListener('timeupdate', fn); } catch {}
+          try {
+            this.audio.removeEventListener('timeupdate', fn);
+          } catch (_e) {
+            this.noop(_e);
+          }
         }
       }
-    } catch {}
+    } catch (_e) {
+      this.noop(_e);
+    }
     this.scheduledTimeUpdateHandlers.clear();
     this.nextAppendScheduled = false;
+  }
+
+  // Media Session API integration (hardware/OS media controls)
+  private setupMediaSession(): void {
+    if (!isPlatformBrowser(this.platform)) return;
+    const nav = (globalThis as unknown as { navigator?: Navigator }).navigator;
+    if (!nav || !('mediaSession' in nav)) return;
+    const ms = (nav as unknown as { mediaSession?: MediaSession }).mediaSession;
+    if (!ms) return;
+    try {
+      ms.setActionHandler('play', () => this.handleMediaPlay());
+      ms.setActionHandler('pause', () => this.handleMediaPause());
+      ms.setActionHandler('previoustrack', () => this.onPrev());
+      ms.setActionHandler('nexttrack', () => this.onNext());
+      ms.setActionHandler('seekto', (d: MediaSessionActionDetails) => {
+        const t = typeof d?.seekTime === 'number' ? d.seekTime : this.audio?.currentTime ?? 0;
+        this.onSeek(t);
+      });
+      ms.setActionHandler('seekbackward', (d: MediaSessionActionDetails) => {
+        const off = typeof d?.seekOffset === 'number' ? d.seekOffset : 10;
+        const cur = this.audio?.currentTime ?? 0;
+        this.onSeek(Math.max(0, cur - off));
+      });
+      ms.setActionHandler('seekforward', (d: MediaSessionActionDetails) => {
+        const off = typeof d?.seekOffset === 'number' ? d.seekOffset : 10;
+        const cur = this.audio?.currentTime ?? 0;
+        const dur = this.currentSong?.duration ?? this.totalDuration;
+        this.onSeek(Math.min(dur, cur + off));
+      });
+      ms.setActionHandler('stop', () => this.onClose());
+    } catch (_e) {
+      this.noop(_e);
+    }
+  }
+
+  private updateMediaSessionMetadata(): void {
+    if (!isPlatformBrowser(this.platform)) return;
+    const nav = (globalThis as unknown as { navigator?: Navigator }).navigator;
+    if (!nav || !('mediaSession' in nav)) return;
+    const s = this.currentSong;
+    try {
+      const ms = (nav as unknown as { mediaSession?: MediaSession }).mediaSession;
+      if (!ms) return;
+      ms.metadata = s
+        ? new MediaMetadata({
+            title: s.title,
+            artist: s.artist,
+            album: '',
+            artwork: s.thumbnail ? [{ src: s.thumbnail }] : [],
+          })
+        : null;
+    } catch (_e) {
+      this.noop(_e);
+    }
+    this.updateMediaSessionPlaybackState();
+    this.updateMediaSessionPosition();
+  }
+
+  private updateMediaSessionPlaybackState(): void {
+    if (!isPlatformBrowser(this.platform)) return;
+    const nav = (globalThis as unknown as { navigator?: Navigator }).navigator;
+    if (!nav || !('mediaSession' in nav)) return;
+    try {
+      const ms = (nav as unknown as { mediaSession?: MediaSession }).mediaSession;
+      if (!ms) return;
+      ms.playbackState = this.isPlaying ? 'playing' : 'paused';
+    } catch (_e) {
+      this.noop(_e);
+    }
+  }
+
+  private updateMediaSessionPosition(): void {
+    if (!isPlatformBrowser(this.platform)) return;
+    const nav = (globalThis as unknown as { navigator?: Navigator }).navigator;
+    if (!nav || !('mediaSession' in nav)) return;
+    const ms = (nav as unknown as { mediaSession?: MediaSessionWithPosition }).mediaSession;
+    if (!ms || typeof ms.setPositionState !== 'function') return;
+    try {
+      ms.setPositionState({
+        duration: this.currentSong?.duration ?? this.totalDuration ?? 0,
+        playbackRate: 1,
+        position: this.audio?.currentTime ?? 0,
+      });
+    } catch (_e) {
+      this.noop(_e);
+    }
+  }
+
+  private handleMediaPlay(): void {
+    if (!this.audio) return;
+    if (this.audio.paused) {
+      this.audio.play();
+      this.isPlaying = true;
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(true);
+    }
+  }
+
+  private handleMediaPause(): void {
+    if (!this.audio) return;
+    if (!this.audio.paused) {
+      this.audio.pause();
+      this.isPlaying = false;
+      this.updateMediaSessionPlaybackState();
+      this.playingChange.emit(false);
+    }
+  }
+
+  private noop(e?: unknown): void {
+    // intentional no-op; reference param to satisfy lint
+    void e;
   }
 }

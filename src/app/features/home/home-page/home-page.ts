@@ -168,6 +168,10 @@ export class HomePage implements OnDestroy {
     this.page$.next(0);
   }
 
+  public onPlayingChange(playing: boolean): void {
+    this.isPlaying.set(playing);
+  }
+
   public ngOnDestroy(): void {
     this.observer?.disconnect();
   }

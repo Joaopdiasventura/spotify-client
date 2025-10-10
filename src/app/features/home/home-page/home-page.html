@@ -45,6 +45,7 @@
       [isPlaying]="isPlaying()"
       (playEvent)="handlePlayerIndexChange($event)"
       (closeEvent)="onPlayerClose()"
+      (playingChange)="onPlayingChange($event)"
       (loadMore)="handlePlayerLoadMore()"
     ></app-player>
   }
