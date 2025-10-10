@@ -9,6 +9,9 @@
   transition: background 150ms ease;
   cursor: pointer;
   @include gaps($space-2, $space-3);
+  width: 100%;
+  min-width: 0; // allow children to shrink and ellipsize
+  overflow: hidden; // prevent horizontal overflow leaking to parent
 
   &:hover {
     background: rgba($color-elev, 0.65);
@@ -91,6 +94,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: block;
 
   @include up($bp-md) {
     font-size: $fs-md;

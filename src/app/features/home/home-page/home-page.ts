@@ -9,6 +9,7 @@ import { Sidebar } from '../../../shared/components/sidebar/sidebar';
 import { SongService } from '../../../core/services/song/song.service';
 import {
   BehaviorSubject,
+  Observable,
   combineLatest,
   map,
   merge,
@@ -17,6 +18,11 @@ import {
   startWith,
   switchMap,
   take,
+  of,
+  timer,
+  filter,
+  distinctUntilChanged,
+  takeUntil,
 } from 'rxjs';
 
 @Component({
@@ -71,6 +77,26 @@ export class HomePage implements OnDestroy {
     this.params$.pipe(map(() => true)),
     this.pageResult$.pipe(map(() => false))
   ).pipe(startWith(false), shareReplay(1));
+
+  private readonly requestState$ = merge(
+    this.params$.pipe(map(([, page]) => ({ page, loading: true }))),
+    this.pageResult$.pipe(map(({ page }) => ({ page, loading: false })))
+  ).pipe(shareReplay(1));
+
+  private readonly isInitialLoading$ = this.requestState$.pipe(
+    map((s) => s.loading && s.page === 0),
+    distinctUntilChanged(),
+    shareReplay(1)
+  );
+
+  private readonly isMoreLoading$ = this.requestState$.pipe(
+    map((s) => s.loading && s.page > 0),
+    distinctUntilChanged(),
+    shareReplay(1)
+  );
+
+  public readonly loadingInitial$ = this.applyLoadingDelay(this.isInitialLoading$, 150);
+  public readonly loadingMore$ = this.applyLoadingDelay(this.isMoreLoading$, 150);
 
   private readonly hasMore$ = this.pageResult$.pipe(
     map((r) => r.list.length >= this.limit),
@@ -189,6 +215,21 @@ export class HomePage implements OnDestroy {
       .subscribe(([loading, hasMore]) => {
         if (!loading && hasMore) this.page$.next(this.page$.getValue() + 1);
       });
+  }
+
+  private applyLoadingDelay(source$: Observable<boolean>, delayMs: number): Observable<boolean> {
+    return source$.pipe(
+      switchMap((isLoading) =>
+        isLoading
+          ? timer(delayMs).pipe(
+              map(() => true),
+              takeUntil(source$.pipe(filter((v) => !v)))
+            )
+          : of(false)
+      ),
+      startWith(false),
+      shareReplay(1)
+    );
   }
 
   public isCurrentSong(song: Song): boolean {

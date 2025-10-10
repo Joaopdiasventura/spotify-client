@@ -8,22 +8,20 @@
 
     <main class="content">
       <div class="container">
-        @let loading = (loading$ | async); @let songs = (songs$ | async); @let label = (label$ |
-        async); @if (!loading) {
-        <h2 class="section-title">
-          {{ label }}
-        </h2>
-        }
+        @let loadingInitial = (loadingInitial$ | async); @let loadingMore = (loadingMore$ | async);
+        @let songs = (songs$ | async); @let label = (label$ | async);
+        <h2 class="section-title">{{ label }}</h2>
 
         <div class="grid-cards" #gridCards>
-          @for (song of songs; track song; let i = $index) {
+          @for (song of songs; track song._id; let i = $index) {
           <app-song-card
             [song]="song"
             [index]="i"
             [isPlaying]="isPlaying() && isCurrentSong(song)"
             (playEvent)="handleCardPlay($event)"
           ></app-song-card>
-          } @if (loading) { @for (n of skeletons; track n) {
+          }
+          @if ((loadingInitial && (!songs || songs.length === 0)) || loadingMore) { @for (n of skeletons; track n) {
           <div class="song-skeleton">
             <div class="thumb-skel skeleton"></div>
             <div class="meta-skel">
