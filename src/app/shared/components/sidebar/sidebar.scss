@@ -6,7 +6,7 @@
 
 .sidebar {
   width: 260px;
-  height: 100%;
+  min-height: 100vh;
   background: $color-surface;
   border-right: 1px solid $color-border;
   display: flex;
@@ -109,5 +109,25 @@
   &:hover {
     color: $color-text;
     background: $color-elev;
+  }
+}
+
+.sidebar-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $space-4;
+  height: 7.2vh;
+  margin-bottom: $space-2;
+  margin-top: auto;
+
+ .btn-logout{
+    border: solid 1px $color-border;
+    padding: $space-1 $space-2;
+    background-color: $color-primary;
+    width: 100%;
+    color: $color-text;
+    border-radius: $radius-sm;
+    font-weight: 600;
   }
 }

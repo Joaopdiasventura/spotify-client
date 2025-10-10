@@ -2,6 +2,9 @@
 
 .app-header {
   height: 7.2vh;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
   position: sticky;
   top: 0;
   z-index: 1000;
@@ -14,8 +17,8 @@
   display: flex;
   align-items: center;
   height: 56px;
-  padding: 0 $space-4;
-  max-width: $container;
+  padding: 0 $space-1;
+  width: $container;
   margin: 0 auto;
   @include gaps($space-2, $space-3);
 
@@ -32,6 +35,7 @@
 
 .nav-controls {
   display: none;
+
   @include up($bp-md) {
     display: inline-flex;
     gap: $space-2;
@@ -44,7 +48,14 @@
   align-items: center;
   flex: 1;
   max-width: 520px;
-  margin-left: auto;
+  margin-left: 0;
+
+  @include up($bp-md) {
+    /* garante que a busca não cresça além do desejado e mantenha alinhamento */
+    max-width: 520px;
+    margin-left: 0;
+
+  }
 
   lucide-icon {
     position: absolute;

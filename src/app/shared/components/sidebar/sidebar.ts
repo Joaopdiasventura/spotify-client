@@ -26,4 +26,8 @@ export class Sidebar implements OnInit {
     if (this.onClose) this.onClose();
     this.closeEvent.emit();
   }
+
+  public logOut(): void {
+    this.authService.disconnectUser()
+  }
 }
