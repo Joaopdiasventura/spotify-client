@@ -1,54 +1,72 @@
 <audio #audio controls style="display: none"></audio>
 
 @if (currentSong) {
-  <div class="player">
+  <div class="player" [class.expanded]="expanded">
     <div class="player-header">
       <h4>Tocando agora</h4>
-      <button class="close-btn" (click)="onClose()" title="Parar e fechar player">
-        <lucide-icon name="x"></lucide-icon>
-      </button>
+      @if (expanded) {
+        <button class="close-btn" (click)="toggleExpand()" title="Fechar detalhes do player">
+          <lucide-icon name="chevron-down"></lucide-icon>
+        </button>
+      } else {
+        <button class="close-btn" (click)="onClose(); $event.stopPropagation()" title="Parar e fechar player">
+          <lucide-icon name="x"></lucide-icon>
+        </button>
+      }
     </div>
 
     <div class="left">
       <img [src]="currentSong.thumbnail" [alt]="currentSong.title + ' album cover'" />
-      <div class="text">
-        <h4 class="title">{{ currentSong.title }}</h4>
-        <p class="artist">{{ currentSong.artist }}</p>
-      </div>
     </div>
 
     <div class="center">
+      <div class="text-block" *ngIf="expanded">
+        <h2 class="title">{{ currentSong.title }}</h2>
+        <p class="artist">{{ currentSong.artist }}</p>
+        <p class="description">{{ currentSong.description }}</p>
+        <div class="lyrics-block">
+          <h5>Letra</h5>
+          <p>{{ currentSong.lyrics || 'Letra não disponível.' }}</p>
+        </div>
+        <div class="extra-block">
+          <span>Duração: {{ formatTime(currentSong.duration) }}</span>
+          <span>ID: {{ currentSong._id }}</span>
+        </div>
+      </div>
       <div class="controls-row">
-        <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle()">
+        <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle(); $event.stopPropagation()">
           <lucide-icon name="shuffle"></lucide-icon>
         </button>
-        <button class="icon-btn" (click)="onPrev()" [disabled]="!canPrev">
+        <button class="icon-btn" (click)="onPrev(); $event.stopPropagation()" [disabled]="!canPrev">
           <lucide-icon name="skip-back"></lucide-icon>
         </button>
-        <button class="play-btn lg" (click)="onPlayPause()">
+        <button class="play-btn lg" (click)="onPlayPause(); $event.stopPropagation()">
           <lucide-icon [name]="isPlaying ? 'pause' : 'play'"></lucide-icon>
         </button>
-        <button class="icon-btn" (click)="onNext()" [disabled]="!canNext">
+        <button class="icon-btn" (click)="onNext(); $event.stopPropagation()" [disabled]="!canNext">
           <lucide-icon name="skip-forward"></lucide-icon>
         </button>
-        <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop()">
+        <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop(); $event.stopPropagation()">
           <lucide-icon name="repeat"></lucide-icon>
         </button>
       </div>
       <div class="progress-row">
-        <span class="time">{{ formatTime(currentTime()) }}</span>
+        <span class="time">{ formatTime(currentTime()) }</span>
         <input
           type="range"
           [min]="0"
           [max]="currentSong.duration"
           [value]="currentTime()"
-          [style.--progress]="
-            (currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'
-          "
-          (input)="onSeek($event.target.valueAsNumber)"
+          [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
+          (input)="onSeek($event.target.valueAsNumber); $event.stopPropagation()"
         />
-        <span class="time">{{ formatTime(currentSong.duration) }}</span>
+        <span class="time">{ formatTime(currentSong.duration) }</span>
       </div>
+      @if (!expanded) {
+        <button class="expand-btn" (click)="toggleExpand()" title="Expandir player">
+          <lucide-icon name="chevron-up"></lucide-icon>
+        </button>
+      }
     </div>
 
     <div class="right">
@@ -59,7 +77,7 @@
         max="100"
         step="1"
         [style.--progress]="(volume() * 100) + '%'"
-        (input)="onVolumeChange($event.target.valueAsNumber / 100)"
+        (input)="onVolumeChange($event.target.valueAsNumber / 100); $event.stopPropagation()"
       />
     </div>
   </div>

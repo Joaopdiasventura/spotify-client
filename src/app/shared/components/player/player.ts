@@ -77,6 +77,13 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   private chunksSub?: Subscription;
   private scheduledTimeUpdateHandlers = new Set<(ev: Event) => void>();
 
+  // Estado para bandeja expandida
+  public expanded = false;
+
+  public toggleExpand(): void {
+    this.expanded = !this.expanded;
+  }
+
   public get currentSong(): Song | null {
     if (!this.playlist) return null;
     return this.currentIndex >= 0 && this.currentIndex < this.playlist.length
