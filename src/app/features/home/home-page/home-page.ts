@@ -9,6 +9,7 @@ import { Sidebar } from '../../../shared/components/sidebar/sidebar';
 import { SongService } from '../../../core/services/song/song.service';
 import {
   BehaviorSubject,
+  Observable,
   combineLatest,
   map,
   merge,
@@ -17,6 +18,11 @@ import {
   startWith,
   switchMap,
   take,
+  of,
+  timer,
+  filter,
+  distinctUntilChanged,
+  takeUntil,
 } from 'rxjs';
 
 @Component({
@@ -29,6 +35,8 @@ export class HomePage implements OnDestroy {
   public currentIndex = signal<number>(-1);
   public isPlaying = signal(false);
   public sidebarOpen = signal(false);
+  public playerPlaylist = signal<Song[]>([]);
+  private playerSearchSnapshot = '';
 
   public skeletons = Array.from({ length: 5 }, (_, i) => i);
 
@@ -70,6 +78,26 @@ export class HomePage implements OnDestroy {
     this.pageResult$.pipe(map(() => false))
   ).pipe(startWith(false), shareReplay(1));
 
+  private readonly requestState$ = merge(
+    this.params$.pipe(map(([, page]) => ({ page, loading: true }))),
+    this.pageResult$.pipe(map(({ page }) => ({ page, loading: false })))
+  ).pipe(shareReplay(1));
+
+  private readonly isInitialLoading$ = this.requestState$.pipe(
+    map((s) => s.loading && s.page === 0),
+    distinctUntilChanged(),
+    shareReplay(1)
+  );
+
+  private readonly isMoreLoading$ = this.requestState$.pipe(
+    map((s) => s.loading && s.page > 0),
+    distinctUntilChanged(),
+    shareReplay(1)
+  );
+
+  public readonly loadingInitial$ = this.applyLoadingDelay(this.isInitialLoading$, 150);
+  public readonly loadingMore$ = this.applyLoadingDelay(this.isMoreLoading$, 150);
+
   private readonly hasMore$ = this.pageResult$.pipe(
     map((r) => r.list.length >= this.limit),
     startWith(true),
@@ -99,15 +127,32 @@ export class HomePage implements OnDestroy {
     this.setupObserver();
   }
 
-  public handlePlay(index: number): void {
+  // Play from a song card (grid). Snapshots the current visible list for the player.
+  public handleCardPlay(index: number): void {
     this.songs$.pipe(take(1)).subscribe((list) => {
       if (!list || index < 0 || index >= list.length) return;
-      if (this.currentIndex() === index) this.isPlaying.update((v) => !v);
-      else {
-        this.currentIndex.set(index);
-        this.isPlaying.set(true);
-      }
+      // Create a snapshot playlist independent from the grid list
+      this.playerPlaylist.set([...list]);
+      this.playerSearchSnapshot = this.search$.getValue();
+      this.currentIndex.set(index);
+      this.isPlaying.set(true);
     });
+  }
+
+  // Index change coming from the player (play/pause/next/prev)
+  public handlePlayerIndexChange(index: number): void {
+    const list = this.playerPlaylist();
+    if (!list || index < 0 || index >= list.length) return;
+    if (this.currentIndex() === index) this.isPlaying.update((v) => !v);
+    else {
+      this.currentIndex.set(index);
+      this.isPlaying.set(true);
+    }
+  }
+
+  public onPlayerClose(): void {
+    this.currentIndex.set(-1);
+    this.isPlaying.set(false);
   }
 
   public handlePlayPause(): void {
@@ -123,12 +168,34 @@ export class HomePage implements OnDestroy {
     this.page$.next(0);
   }
 
+  public onPlayingChange(playing: boolean): void {
+    this.isPlaying.set(playing);
+  }
+
   public ngOnDestroy(): void {
     this.observer?.disconnect();
   }
 
   public handlePlayerLoadMore(): void {
-    this.loadMore();
+    // Load more items only for the player's playlist, independent from the grid
+    const snapshotSearch = this.playerSearchSnapshot;
+    const orderBy = snapshotSearch ? 'title:asc' : 'createdAt:desc';
+    const alreadyLoaded = this.playerPlaylist().length;
+    const nextPage = Math.floor(alreadyLoaded / this.limit);
+    this.songService
+      .findMany({
+        limit: this.limit,
+        title: snapshotSearch,
+        artist: snapshotSearch,
+        page: nextPage,
+        orderBy,
+      })
+      .pipe(take(1))
+      .subscribe((list) => {
+        if (!list || list.length === 0) return;
+        const merged = [...this.playerPlaylist(), ...list];
+        this.playerPlaylist.set(merged);
+      });
   }
 
   private setupObserver(): void {
@@ -152,5 +219,28 @@ export class HomePage implements OnDestroy {
       .subscribe(([loading, hasMore]) => {
         if (!loading && hasMore) this.page$.next(this.page$.getValue() + 1);
       });
+  }
+
+  private applyLoadingDelay(source$: Observable<boolean>, delayMs: number): Observable<boolean> {
+    return source$.pipe(
+      switchMap((isLoading) =>
+        isLoading
+          ? timer(delayMs).pipe(
+              map(() => true),
+              takeUntil(source$.pipe(filter((v) => !v)))
+            )
+          : of(false)
+      ),
+      startWith(false),
+      shareReplay(1)
+    );
+  }
+
+  public isCurrentSong(song: Song): boolean {
+    if (!song) return false;
+    const list = this.playerPlaylist();
+    const idx = this.currentIndex();
+    if (idx < 0 || idx >= list.length) return false;
+    return list[idx]?._id === song._id;
   }
 }

@@ -1,24 +1,24 @@
 {
-    "builds": [
-        {
-            "src": "api/function.mjs",
-            "use": "@vercel/node",
-            "config": {
-                "includeFiles": "dist/spotify/**"
-            }
-        },
-        {
-            "src": "package.json",
-            "use": "@vercel/static-build",
-            "config": {
-                "distDir": "dist/spotify/browser"
-            }
-        }
-    ],
-    "rewrites": [
-        {
-            "source": "/(.*)",
-            "destination": "/api/function.mjs"
-        }
-    ]
+  "builds": [
+    {
+      "src": "api/function.mjs",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": "dist/spotify/**"
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/spotify/browser"
+      }
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api/function.mjs"
+    }
+  ]
 }
