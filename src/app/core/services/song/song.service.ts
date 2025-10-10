@@ -26,4 +26,12 @@ export class SongService {
     const params = new HttpParams({ fromObject: obj });
     return this.http.get<Song[]>(this.apiUrl, { params });
   }
+
+  public searchSongs(query: string, limit = 20): Observable<Song[]> {
+    const params = new HttpParams()
+      .set('search', query)
+      .set('limit', limit.toString());
+
+    return this.http.get<Song[]>(`${this.apiUrl}/search`, { params });
+  }
 }

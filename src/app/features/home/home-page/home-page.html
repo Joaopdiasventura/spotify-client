@@ -40,10 +40,14 @@
     </main>
   </div>
 
-  <app-player
-    [playlist]="songs$ | async"
-    [currentIndex]="currentIndex()"
-    [isPlaying]="isPlaying()"
-    (playEvent)="handlePlay($event)"
-    (loadMore)="handlePlayerLoadMore()"
-  ></app-player>
+  @if (currentIndex() !== -1) {
+    <app-player
+      [playlist]="songs$ | async"
+      [currentIndex]="currentIndex()"
+      [isPlaying]="isPlaying()"
+      (playEvent)="handlePlay($event)"
+      (closeEvent)="onPlayerClose()"
+      (loadMore)="handlePlayerLoadMore()"
+    ></app-player>
+  }
+</div>

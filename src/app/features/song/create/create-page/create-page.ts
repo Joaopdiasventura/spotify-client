@@ -121,10 +121,14 @@ export class CreatePage implements OnInit, OnDestroy {
       this.error.set('Você precisa estar logado para criar uma música.');
       return;
     }
+
+    this.form.markAllAsTouched();
+
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.error.set('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
+
     const fd = new FormData();
     fd.append('title', this.form.value.title);
     fd.append('artist', this.form.value.artist);

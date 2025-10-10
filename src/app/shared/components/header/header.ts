@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { LucideAngularModule } from 'lucide-angular';
 import { debounceTime, distinctUntilChanged, Subject, takeUntil } from 'rxjs';
 
 @Component({
   selector: 'app-header',
-  imports: [LucideAngularModule],
+  imports: [LucideAngularModule, FormsModule],
   templateUrl: './header.html',
   styleUrl: './header.scss',
 })

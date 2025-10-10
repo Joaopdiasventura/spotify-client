@@ -30,6 +30,7 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   @Input({ required: true }) public currentIndex = -1;
   @Input({ required: true }) public isPlaying = false;
   @Output() public playEvent = new EventEmitter<number>();
+  @Output() public closeEvent = new EventEmitter<void>();
   @Output() public loadMore = new EventEmitter<void>();
 
   @ViewChild('audio', { static: true }) public audioRef!: ElementRef<HTMLAudioElement>;
@@ -142,6 +143,21 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
     const m = Math.floor(time / 60);
     const s = Math.floor(time % 60);
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  }
+
+  // Fechar o player
+  public onClose(): void {
+    // Para a reprodução
+    if (this.audio) {
+      this.audio.pause();
+      this.isPlaying = false;
+    }
+
+    // Limpa os recursos
+    this.teardownMediaPipeline();
+
+    // Emite o evento para o componente pai
+    this.closeEvent.emit();
   }
 
   private handleSongChange(): void {

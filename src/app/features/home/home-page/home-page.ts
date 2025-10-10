@@ -110,6 +110,11 @@ export class HomePage implements OnDestroy {
     });
   }
 
+  public onPlayerClose(): void {
+    this.currentIndex.set(-1);
+    this.isPlaying.set(false);
+  }
+
   public handlePlayPause(): void {
     this.isPlaying.update((v) => !v);
   }
