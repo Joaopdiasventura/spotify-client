@@ -1,1 +1,117 @@
-<p>profile-page works!</p>
+<div class="layout" [class.drawer-open]="sidebarOpen()">
+  <div class="sidebar-wrapper"><app-sidebar (closeEvent)="changeSidebar()"></app-sidebar></div>
+
+  <div class="overlay" (click)="changeSidebar()"></div>
+
+  <div class="main">
+    <app-header (searchEvent)="onSearchChange($event)" (menuClick)="changeSidebar()"></app-header>
+
+    <main class="content">
+      <div class="container">
+        @let user = (user$ | async); @let userSongs = (userSongs$ | async); @let userPlaylists = (userPlaylists$ | async);
+        @let loadingInitial = (loadingInitial$ | async); @let loadingMore = (loadingMore$ | async);
+
+        <!-- Seção de informações do usuário -->
+        <div class="profile-header">
+          <div class="profile-avatar">
+            <div class="avatar-placeholder">
+              {{ user?.name?.charAt(0)?.toUpperCase() || 'U' }}
+            </div>
+          </div>
+          <div class="profile-info">
+            <h1 class="profile-name">{{ user?.name || 'Usuário' }}</h1>
+            <p class="profile-email">{{ user?.email || '' }}</p>
+          </div>
+        </div>
+
+        <!-- Seção de playlists do usuário -->
+        <div class="profile-section">
+          <div class="section-header">
+            <h2 class="section-title">Minhas Playlists</h2>
+            <button class="btn-add-playlist" (click)="createPlaylist()">
+              <span class="btn-icon">+</span>
+              Nova Playlist
+            </button>
+          </div>
+
+          <div class="grid-playlists">
+            @if (userPlaylists && userPlaylists.length > 0) {
+              @for (playlist of userPlaylists; track playlist._id) {
+                <app-playlist-card
+                  [playlist]="playlist"
+                  (click)="openPlaylist(playlist)"
+                ></app-playlist-card>
+              }
+            } @else if (!loadingInitial) {
+              <div class="empty-state">
+                <p>Nenhuma playlist criada ainda</p>
+                <button class="btn-primary" (click)="createPlaylist()">Criar primeira playlist</button>
+              </div>
+            }
+
+            @if (loadingInitial) {
+              @for (n of skeletons; track n) {
+                <div class="playlist-skeleton">
+                  <div class="thumb-skel skeleton"></div>
+                  <div class="meta-skel">
+                    <div class="line w-70 skeleton"></div>
+                    <div class="line w-50 skeleton"></div>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </div>
+
+        <!-- Seção de músicas adicionadas pelo usuário -->
+        <div class="profile-section">
+          <h2 class="section-title">Músicas Adicionadas por Mim</h2>
+
+          <div class="grid-cards" #gridCards>
+            @if (userSongs && userSongs.length > 0) {
+              @for (song of userSongs; track song._id; let i = $index) {
+                <app-song-card
+                  [song]="song"
+                  [index]="i"
+                  [isPlaying]="isPlaying() && isCurrentSong(song)"
+                  (playEvent)="handleCardPlay($event)"
+                ></app-song-card>
+              }
+            } @else if (!loadingInitial) {
+              <div class="empty-state">
+                <p>Nenhuma música adicionada ainda</p>
+              </div>
+            }
+
+            @if ((loadingInitial && (!userSongs || userSongs.length === 0)) || loadingMore) {
+              @for (n of skeletons; track n) {
+                <div class="song-skeleton">
+                  <div class="thumb-skel skeleton"></div>
+                  <div class="meta-skel">
+                    <div class="line w-60 skeleton"></div>
+                    <div class="line w-40 skeleton"></div>
+                    <div class="line w-48 skeleton"></div>
+                  </div>
+                  <div class="duration-skel line w-20 skeleton"></div>
+                </div>
+              }
+            }
+            <div #infiniteSentinel class="infinite-sentinel" aria-hidden="true"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  @if (currentIndex() !== -1) {
+    <app-player
+      [playlist]="playerPlaylist()"
+      [currentIndex]="currentIndex()"
+      [isPlaying]="isPlaying()"
+      (playEvent)="handlePlayerIndexChange($event)"
+      (closeEvent)="onPlayerClose()"
+      (playingChange)="onPlayingChange($event)"
+      (loadMore)="handlePlayerLoadMore()"
+    ></app-player>
+  }
+</div>

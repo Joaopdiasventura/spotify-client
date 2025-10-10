@@ -1,0 +1,36 @@
+<div class="playlist-card" (click)="onClick()">
+  <div class="playlist-cover">
+    @if (playlist().coverImage) {
+      <img [src]="playlist().coverImage" [alt]="playlist().name" class="cover-image" />
+    } @else {
+      <div class="cover-placeholder">
+        <div class="music-icon">🎵</div>
+      </div>
+    }
+    <div class="playlist-overlay">
+      <button class="play-btn" (click)="onPlay($event)">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="song-count">
+      {{ getSongCount() }} músicas
+    </div>
+  </div>
+
+  <div class="playlist-info">
+    <h3 class="playlist-name">{{ playlist().name }}</h3>
+    @if (playlist().description) {
+      <p class="playlist-description">{{ playlist().description }}</p>
+    }
+    <div class="playlist-meta">
+      <span class="privacy-badge" [class.public]="playlist().isPublic">
+        {{ playlist().isPublic ? 'Pública' : 'Privada' }}
+      </span>
+      @if (showOwner() && playlist().ownerDetails) {
+        <span class="owner">por {{ playlist().ownerDetails?.name }}</span>
+      }
+    </div>
+  </div>
+</div>
