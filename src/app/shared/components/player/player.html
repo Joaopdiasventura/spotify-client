@@ -1,84 +1,108 @@
 <audio #audio controls style="display: none"></audio>
 
 @if (currentSong) {
-  <div class="player" [class.expanded]="expanded">
+  <div 
+    class="player-container" 
+    [class.expanded]="expanded" 
+    (click)="!expanded && toggleExpand()">
+
     <div class="player-header">
-      <h4>Tocando agora</h4>
       @if (expanded) {
-        <button class="close-btn" (click)="toggleExpand()" title="Fechar detalhes do player">
+        <button class="icon-btn action-btn" type="button" (click)="toggleExpand(); $event.stopPropagation()" title="Recolher player">
           <lucide-icon name="chevron-down"></lucide-icon>
         </button>
-      } else {
-        <button class="close-btn" (click)="onClose(); $event.stopPropagation()" title="Parar e fechar player">
+      } @else {
+        <button class="icon-btn action-btn" (click)="onClose(); $event.stopPropagation()" title="Parar e fechar player">
           <lucide-icon name="x"></lucide-icon>
         </button>
       }
     </div>
-
-    <div class="left">
-      <img [src]="currentSong.thumbnail" [alt]="currentSong.title + ' album cover'" />
-    </div>
-
-    <div class="center">
-      <div class="text-block" *ngIf="expanded">
-        <h2 class="title">{{ currentSong.title }}</h2>
-        <p class="artist">{{ currentSong.artist }}</p>
-        <p class="description">{{ currentSong.description }}</p>
-        <div class="lyrics-block">
-          <h5>Letra</h5>
-          <p>{{ currentSong.lyrics || 'Letra não disponível.' }}</p>
+    
+    @if (!expanded) {
+      <div class="collapsed-view">
+        <div class="left">
+          <img [src]="currentSong.thumbnail" [alt]="currentSong.title + ' capa do álbum'" class="thumbnail-small"/>
+          <div class="song-info">
+            <span class="title">{{ currentSong.title }}</span>
+            <span class="artist">{{ currentSong.artist }}</span>
+          </div>
         </div>
-        <div class="extra-block">
-          <span>Duração: {{ formatTime(currentSong.duration) }}</span>
-          <span>ID: {{ currentSong._id }}</span>
+        <div class="center">
+           <div class="playback-controls collapsed" (click)="$event.stopPropagation()">
+             <div class="controls-row">
+              <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle()">
+              <lucide-icon name="shuffle"></lucide-icon>
+            </button>
+               <button class="icon-btn" (click)="onPrev()" [disabled]="!canPrev" title="Anterior">
+                 <lucide-icon name="skip-back"></lucide-icon>
+               </button>
+               <button class="play-btn lg" (click)="onPlayPause()" title="Play / Pause">
+                 <lucide-icon [name]="isPlaying ? 'pause' : 'play'"></lucide-icon>
+               </button>
+               <button class="icon-btn" (click)="onNext()" [disabled]="!canNext" title="Próxima">
+                 <lucide-icon name="skip-forward"></lucide-icon>
+               </button>
+               <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop()">
+              <lucide-icon name="repeat"></lucide-icon>
+            </button>
+             </div>
+           </div>
+        </div>
+        <div class="right">
+          </div>
+      </div>
+    }
+
+    @if (expanded) {
+      <div class="expanded-view">
+        <img [src]="currentSong.thumbnail" [alt]="currentSong.title + ' capa do álbum'" class="thumbnail-large"/>
+
+        <div class="song-details">
+          <h2 class="title">{{ currentSong.title }}</h2>
+          <p class="artist">{{ currentSong.artist }}</p>
+        </div>
+
+        <div class="playback-controls">
+          <div class="progress-row">
+            <span class="time">{{ formatTime(currentTime()) }}</span>
+            <input
+              #progressSlider
+              type="range" class="progress-bar" [min]="0" [max]="currentSong.duration" [value]="currentTime()"
+              [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
+              (input)="onSeek(+progressSlider.value)"
+            />
+            <span class="time">{{ formatTime(currentSong.duration) }}</span>
+          </div>
+          <div class="controls-row">
+            <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle()">
+              <lucide-icon name="shuffle"></lucide-icon>
+            </button>
+            <button class="icon-btn" (click)="onPrev()" [disabled]="!canPrev">
+              <lucide-icon name="skip-back"></lucide-icon>
+            </button>
+            <button class="play-btn lg" (click)="onPlayPause()">
+              <lucide-icon [name]="isPlaying ? 'pause' : 'play'"></lucide-icon>
+            </button>
+            <button class="icon-btn" (click)="onNext()" [disabled]="!canNext">
+              <lucide-icon name="skip-forward"></lucide-icon>
+            </button>
+            <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop()">
+              <lucide-icon name="repeat"></lucide-icon>
+            </button>
+          </div>
+        </div>
+
+        <div class="info-block">
+          <h3>Descrição</h3>
+          <p>{{ currentSong.description || 'Descrição não disponível.' }}</p>
+        </div>
+
+        <div class="info-block lyrics-block">
+          <h3>Letra</h3>
+          <p class="lyrics">{{ currentSong.lyrics || 'Letra não disponível.' }}</p>
         </div>
       </div>
-      <div class="controls-row">
-        <button [ngClass]="['icon-btn', shuffle() ? 'active' : 'default']" (click)="toggleShuffle(); $event.stopPropagation()">
-          <lucide-icon name="shuffle"></lucide-icon>
-        </button>
-        <button class="icon-btn" (click)="onPrev(); $event.stopPropagation()" [disabled]="!canPrev">
-          <lucide-icon name="skip-back"></lucide-icon>
-        </button>
-        <button class="play-btn lg" (click)="onPlayPause(); $event.stopPropagation()">
-          <lucide-icon [name]="isPlaying ? 'pause' : 'play'"></lucide-icon>
-        </button>
-        <button class="icon-btn" (click)="onNext(); $event.stopPropagation()" [disabled]="!canNext">
-          <lucide-icon name="skip-forward"></lucide-icon>
-        </button>
-        <button [ngClass]="['icon-btn', loop() ? 'active' : 'default']" (click)="toggleLoop(); $event.stopPropagation()">
-          <lucide-icon name="repeat"></lucide-icon>
-        </button>
-      </div>
-      <div class="progress-row">
-        <span class="time">{ formatTime(currentTime()) }</span>
-        <input
-          type="range"
-          [min]="0"
-          [max]="currentSong.duration"
-          [value]="currentTime()"
-          [style.--progress]="(currentSong.duration ? (currentTime() / currentSong.duration) * 100 : 0) + '%'"
-          (input)="onSeek($event.target.valueAsNumber); $event.stopPropagation()"
-        />
-        <span class="time">{ formatTime(currentSong.duration) }</span>
-      </div>
-      @if (!expanded) {
-        <button class="expand-btn" (click)="toggleExpand()" title="Expandir player">
-          <lucide-icon name="chevron-up"></lucide-icon>
-        </button>
-      }
-    </div>
+    }
 
-    <div class="right">
-      <lucide-icon name="volume-2"></lucide-icon>
-      <input
-        type="range"
-        [value]="volume() * 100"
-        max="100"
-        step="1"
-        [style.--progress]="(volume() * 100) + '%'"
-        (input)="onVolumeChange($event.target.valueAsNumber / 100); $event.stopPropagation()"
-      />
-    </div>
   </div>
 }

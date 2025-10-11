@@ -1,182 +1,301 @@
 @use '../../../../styles/tokens' as *;
 
-.player-header {
-  position: absolute;
-  top: -40px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background: rgba(0, 0, 0, 0.8);
-  backdrop-filter: blur(10px);
-  border-top-left-radius: 8px;
-  border-top-right-radius: 8px;
+// Variáveis locais para o componente
+$collapsed-height: 80px;
+$transition-speed: 0.4s;
+$transition-timing: cubic-bezier(0.4, 0, 0.2, 1);
 
-  h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.7);
-  }
-
-  .close-btn {
-    background: none;
-    border: none;
-    color: rgba(255, 255, 255, 0.7);
-    cursor: pointer;
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.9);
-      background: rgba(255, 255, 255, 0.1);
-    }
-
-    lucide-icon {
-      width: 16px;
-      height: 16px;
-    }
-  }
-}
-
-.player {
+.player-container {
   position: fixed;
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 100;
-  background: $color-bg;
-  box-shadow: 0 -2px 16px rgba(0,0,0,0.2);
-  border-top-left-radius: 16px;
-  border-top-right-radius: 16px;
-  transition: height 0.4s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s;
-  height: 80px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding: 0 24px;
+  z-index: 1000;
 
+  // Estilos base (colapsado)
+  height: $collapsed-height;
+  background: $color-surface; //
+  border-top: 1px solid $color-border; //
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+
+  // Animação suave para altura e bordas
+  transition: height $transition-speed $transition-timing, border-radius $transition-speed $transition-timing;
+
+  // Estilos do modo expandido
   &.expanded {
-    height: 480px;
-    box-shadow: 0 -8px 32px rgba(0,0,0,0.3);
+    height: 85vh;
+    border-top-left-radius: $space-4; // Usando token de espaçamento para o raio (16px)
+    border-top-right-radius: $space-4; // Usando token de espaçamento para o raio (16px)
     cursor: default;
-    flex-direction: column;
-    align-items: stretch;
-    padding: 32px 48px;
-    justify-content: center;
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
   }
 }
 
-.player.expanded .left,
-.player.expanded .center,
-.player.expanded .right {
-  margin-bottom: 16px;
-  display: block;
+// Cabeçalho com botões de ação
+.player-header {
+  position: absolute;
+  top: $space-4;
+  right: $space-4;
+  z-index: 1010;
+
+  .action-btn {
+    background: rgba($color-text, 0.1);
+    border-radius: $radius-full; //
+    width: $space-8; //
+    height: $space-8; //
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $color-text; //
+
+    &:hover {
+      background: rgba($color-text, 0.2);
+    }
+  }
 }
 
-.player.expanded .center {
+// Conteúdo da visualização colapsada
+.collapsed-view {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 $space-4; //
+  height: 100%;
+
+  .left {
+    display: flex;
+    align-items: center;
+    gap: $space-3; //
+  }
+
+  .thumbnail-small {
+    width: 56px; // Mantido por ser uma dimensão específica
+    height: 56px;
+    border-radius: $radius-sm; //
+    object-fit: cover;
+  }
+
+  .song-info {
+    display: flex;
+    flex-direction: column;
+
+    .title {
+      font-weight: 600;
+      color: $color-text;
+    }
+
+    //
+    .artist {
+      font-size: $fs-sm; //
+      color: $color-muted; //
+    }
+  }
+
+  // Ajustes para mostrar controles no centro quando colapsado
+  .center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    /* evita que clique na área externa do controle feche o player */
+
+    /* o bloco real de controles permite eventos */
+    .playback-controls {
+      pointer-events: auto;
+    }
+  }
+
+  .playback-controls.collapsed {
+    width: auto;
+    max-width: none;
+    padding: 0;
+
+    .controls-row {
+      display: flex;
+      gap: $space-3;
+      align-items: center;
+    }
+
+    /* botões menores para não ocupar muito espaço no estado colapsado */
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        transform: scale(1.1);
+      }
+
+      &.active {
+        color: $color-primary; // verde Spotify
+        background-color: rgba(185, 29, 29, 0.15);
+        box-shadow: 0 0 8px rgba(185, 29, 29, 0.5);
+      }
+
+      &.default {
+        color: #b3b3b3;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+
+    .play-btn.lg {
+      width: 48px;
+      height: 48px;
+      border-radius: $radius-full;
+    }
+  }
+}
+
+/* Esconde shuffle e repeat na view colapsada em telas pequenas */
+@media (max-width: 640px) {
+  .player-container .collapsed-view .playback-controls.collapsed .controls-row > button:first-child,
+  .player-container .collapsed-view .playback-controls.collapsed .controls-row > button:last-child {
+    display: none;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .collapsed-view .player-header{
+    top: $space-2;
+  right: $space-2;
+  }
+}
+
+// Conteúdo da visualização expandida
+.expanded-view {
+  height: 100%;
+  overflow-y: auto;
+  padding: $space-5 $space-6;
+  padding-bottom: $space-8; // Adiciona mais espaço no fundo
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   text-align: center;
-}
+  gap: $space-3;
 
-.player.expanded .text-block {
-  margin-bottom: 24px;
-  padding: 16px 0;
-  background: rgba(0,0,0,0.05);
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-.player.expanded .title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.player.expanded .artist {
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: $color-primary;
-  margin-bottom: 8px;
-}
-
-.player.expanded .description {
-  font-size: 1rem;
-  color: $color-text;
-  margin-bottom: 12px;
-}
-
-.player.expanded .lyrics-block {
-  margin: 12px 0;
-  font-size: 0.95rem;
-  color: $color-text;
-}
-
-.player.expanded .extra-block {
-  margin-top: 12px;
-  font-size: 0.9rem;
-  color: $color-primary;
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-}
-
-.player .left,
-.player .center,
-.player .right {
-  transition: all 0.3s;
-}
-
-.default {
-  color: $color-text;
-}
-
-.active {
-  color: $color-primary;
-}
-
-.expand-btn {
-  margin-top: 12px;
-  background: none;
-  border: none;
-  color: $color-primary;
-  cursor: pointer;
-  font-size: 1.5rem;
-  transition: color 0.2s;
-  &:hover {
-    color: darken($color-primary, 10%);
-  }
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    color: rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.1);
+  .thumbnail-large {
+    width: 250px;
+    height: 250px;
+    border-radius: $radius-md; //
+    object-fit: cover;
+    margin-bottom: $space-4; //
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
   }
 
-  lucide-icon {
-    width: 16px;
-    height: 16px;
+  .song-details {
+    margin-bottom: 0; // Removido para aproveitar o gap do container
+
+    .title {
+      font-size: 28px;
+      font-weight: 700;
+      color: $color-text; //
+      margin: 0;
+    }
+
+    .artist {
+      font-size: $fs-lg; //
+      color: $color-primary; //
+      margin-top: $space-1; //
+    }
+  }
+
+  .playback-controls {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 0; //
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background-color 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.08);
+        transform: scale(1.1);
+      }
+
+      &.active {
+        color: $color-primary; // verde Spotify
+        background-color: rgba(185, 29, 29, 0.15);
+        box-shadow: 0 0 8px rgba(185, 29, 29, 0.5);
+      }
+
+      &.default {
+        color: #b3b3b3;
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .progress-bar {
+    // Remove aparência padrão
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: transparent; // Fundo será controlado pelo track
+    cursor: pointer;
+
+    // Estilo da trilha (barra) para Webkit (Chrome, Safari)
+    &::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 4px;
+      border-radius: $radius-full;
+      // MUDANÇA DE COR: A mágica acontece aqui
+      background: linear-gradient(to right,
+          $color-primary var(--progress, 0%),
+          $color-border var(--progress, 0%));
+    }
+
+    // Estilo do polegar (bolinha) para Webkit
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: $radius-full;
+      background: $color-text;
+      margin-top: -5px; // Centraliza a bolinha na trilha
+    }
+  }
+
+  .info-block {
+    width: 100%;
+    max-width: 600px;
+    margin-bottom: 0; // Removido para usar o gap do container
+    text-align: center;
+    background: $color-elev;
+    padding: $space-3 $space-4;
+    border-radius: $radius-md;
+    border: 1px solid $color-border;
+
+    h3 {
+      font-weight: 600;
+      margin-bottom: $space-2; //
+      color: $color-muted; //
+    }
+
+    p {
+      color: $color-text; //
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
   }
 }

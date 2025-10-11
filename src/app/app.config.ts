@@ -26,6 +26,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
   Menu,
   UserPlus,
   Mail,
@@ -66,6 +68,8 @@ export const appConfig: ApplicationConfig = {
         X,
         ChevronLeft,
         ChevronRight,
+        ChevronUp,
+        ChevronDown,
         Menu,
         LogOut,
       })
