@@ -1,0 +1,218 @@
+<div class="layout" [class.drawer-open]="sidebarOpen()">
+  <div class="sidebar-wrapper"><app-sidebar (closeEvent)="changeSidebar()"></app-sidebar></div>
+
+  <div class="overlay" (click)="changeSidebar()"></div>
+
+  <div class="main">
+    <app-header (searchEvent)="onSearchChange($event)" (menuClick)="changeSidebar()"></app-header>
+
+    <main class="content">
+      <div class="container">
+        <div class="page-header">
+          <button class="back-btn" (click)="goBack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+            </svg>
+            Voltar
+          </button>
+          <h1 class="page-title">Criar Nova Playlist</h1>
+          <p class="page-subtitle">Adicione um nome, descrição e selecione as músicas para sua playlist</p>
+        </div>
+
+        <div class="create-playlist-form">
+          <!-- Formulário de criação -->
+          <div class="form-section">
+            <div class="form-group">
+              <label for="playlistName" class="form-label">Nome da Playlist *</label>
+              <input
+                id="playlistName"
+                type="text"
+                [(ngModel)]="playlistName"
+                class="form-input"
+                placeholder="Ex: Minhas Favoritas"
+                maxlength="100"
+              >
+              @if (showErrors && !playlistName) {
+                <span class="error-message">Nome é obrigatório</span>
+              }
+            </div>
+
+            <div class="form-group">
+              <label for="playlistDescription" class="form-label">Descrição</label>
+              <textarea
+                id="playlistDescription"
+                [(ngModel)]="playlistDescription"
+                class="form-textarea"
+                placeholder="Descreva sua playlist..."
+                rows="3"
+                maxlength="500"
+              ></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Visibilidade</label>
+              <div class="radio-group">
+                <label class="radio-label">
+                  <input
+                    type="radio"
+                    [(ngModel)]="isPublic"
+                    [value]="true"
+                    name="visibility"
+                  >
+                  <span class="radio-custom"></span>
+                  Pública - Todos podem ver
+                </label>
+                <label class="radio-label">
+                  <input
+                    type="radio"
+                    [(ngModel)]="isPublic"
+                    [value]="false"
+                    name="visibility"
+                  >
+                  <span class="radio-custom"></span>
+                  Privada - Apenas eu posso ver
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Seleção de músicas -->
+          <div class="form-section">
+            <div class="section-header">
+              <h2 class="section-title">Selecionar Músicas</h2>
+              <div class="search-box">
+                <input
+                  type="text"
+                  [(ngModel)]="songSearch"
+                  (input)="onSongSearchChange()"
+                  class="search-input"
+                  placeholder="Buscar músicas..."
+                >
+              </div>
+            </div>
+
+            <div class="songs-selection">
+              <!-- Lista de músicas disponíveis -->
+              <div class="songs-list-container">
+                <h3 class="list-title">Músicas Disponíveis</h3>
+                <div class="songs-list">
+                  @if (filteredSongs$ | async; as songs) {
+                    @if (songs.length > 0) {
+                      @for (song of songs; track song._id) {
+                        <div class="song-item" [class.selected]="isSongSelected(song)">
+                          <div class="song-info">
+                            <div class="song-thumbnail">
+                              @if (song.thumbnail) {
+                                <img [src]="song.thumbnail" [alt]="song.title" class="thumbnail">
+                              } @else {
+                                <div class="thumbnail-placeholder">🎵</div>
+                              }
+                            </div>
+                            <div class="song-details">
+                              <h4 class="song-title">{{ song.title }}</h4>
+                              <p class="song-artist">{{ song.artist }}</p>
+                              @if (song.duration) {
+                                <span class="song-duration">{{ formatDuration(song.duration) }}</span>
+                              }
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            class="select-btn"
+                            (click)="toggleSongSelection(song)"
+                          >
+                            {{ isSongSelected(song) ? 'Remover' : 'Adicionar' }}
+                          </button>
+                        </div>
+                      }
+                    } @else {
+                      <div class="empty-state">
+                        <p>Nenhuma música encontrada</p>
+                      </div>
+                    }
+                  } @else {
+                    <!-- Loading skeletons -->
+                    @for (n of skeletons; track n) {
+                      <div class="song-skeleton">
+                        <div class="thumb-skel skeleton"></div>
+                        <div class="meta-skel">
+                          <div class="line w-60 skeleton"></div>
+                          <div class="line w-40 skeleton"></div>
+                          <div class="line w-48 skeleton"></div>
+                        </div>
+                        <div class="action-skel line w-20 skeleton"></div>
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+
+              <!-- Músicas selecionadas -->
+              <div class="selected-songs">
+                <h3 class="selected-title">
+                  Músicas Selecionadas
+                  <span class="selected-count">({{ selectedSongs.length }})</span>
+                </h3>
+
+                @if (selectedSongs.length > 0) {
+                  <div class="selected-list">
+                    @for (song of selectedSongs; track song._id; let i = $index) {
+                      <div class="selected-item">
+                        <div class="song-info">
+                          <div class="song-thumbnail small">
+                            @if (song.thumbnail) {
+                              <img [src]="song.thumbnail" [alt]="song.title" class="thumbnail">
+                            } @else {
+                              <div class="thumbnail-placeholder small">🎵</div>
+                            }
+                          </div>
+                          <div class="song-details">
+                            <h4 class="song-title">{{ song.title }}</h4>
+                            <p class="song-artist">{{ song.artist }}</p>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          class="remove-btn"
+                          (click)="removeSelectedSong(i)"
+                          title="Remover música"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    }
+                  </div>
+                } @else {
+                  <div class="empty-selection">
+                    <p>Nenhuma música selecionada</p>
+                    <span>Adicione músicas da lista ao lado</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn-secondary" (click)="goBack()">
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn-primary"
+              (click)="createPlaylist()"
+              [disabled]="isCreating() || !playlistName.trim()"
+            >
+              @if (isCreating()) {
+                <span class="loading-spinner"></span>
+                Criando...
+              } @else {
+                Criar Playlist
+              }
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

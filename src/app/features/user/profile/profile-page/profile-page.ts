@@ -57,18 +57,15 @@ export class ProfilePage implements OnDestroy {
   private readonly limit = 10;
   private observer?: IntersectionObserver;
 
-  // User data
   public readonly user$ = this.authService.user$;
   private currentUser = signal<User | null>(null);
 
-  // Inicializar o currentUser com modificador de acesso
   public constructor() {
     this.user$.subscribe((user) => {
       this.currentUser.set(user);
     });
   }
 
-  // User's songs
   private readonly userSongsParams$ = combineLatest([this.search$, this.page$, this.user$]).pipe(
     shareReplay(1)
   );
@@ -87,7 +84,6 @@ export class ProfilePage implements OnDestroy {
         })
         .pipe(
           map((list: Song[]) => {
-            // Filtrar apenas músicas do usuário atual no frontend
             const userSongs = list.filter((song) => {
               const isUserSong = song.user === user._id;
               return isUserSong;
@@ -108,20 +104,17 @@ export class ProfilePage implements OnDestroy {
     shareReplay(1)
   );
 
-  // User's playlists - filtrar no frontend
   public readonly userPlaylists$ = combineLatest([
     this.playlistService.getUserPlaylists(),
     this.user$,
   ]).pipe(
     map(([playlists, user]) => {
       if (!user) return [];
-      // Filtrar playlists do usuário atual
       return playlists.filter((playlist) => playlist.owner === user._id);
     }),
     shareReplay(1)
   );
 
-  // Loading states
   private readonly userSongsLoading$ = merge(
     this.userSongsParams$.pipe(map(() => true)),
     this.userSongsPageResult$.pipe(map(() => false))
@@ -153,7 +146,6 @@ export class ProfilePage implements OnDestroy {
     shareReplay(1)
   );
 
-  // Resto do código permanece igual...
   private gridEl?: ElementRef<HTMLDivElement>;
   private sentinelEl?: ElementRef<HTMLDivElement>;
 
@@ -169,11 +161,9 @@ export class ProfilePage implements OnDestroy {
     this.setupObserver();
   }
 
-  // Play from a song card (grid). Snapshots the current visible list for the player.
   public handleCardPlay(index: number): void {
     this.userSongs$.pipe(take(1)).subscribe((list: Song[]) => {
       if (!list || index < 0 || index >= list.length) return;
-      // Create a snapshot playlist independent from the grid list
       this.playerPlaylist.set([...list]);
       this.playerSearchSnapshot = this.search$.getValue();
       this.currentIndex.set(index);
@@ -181,7 +171,6 @@ export class ProfilePage implements OnDestroy {
     });
   }
 
-  // Index change coming from the player (play/pause/next/prev)
   public handlePlayerIndexChange(index: number): void {
     const list = this.playerPlaylist();
     if (!list || index < 0 || index >= list.length) return;
@@ -211,7 +200,6 @@ export class ProfilePage implements OnDestroy {
   }
 
   public createPlaylist(): void {
-    // Implementar criação de playlist
     this.router.navigate(['/playlists/create']);
   }
 
@@ -224,7 +212,6 @@ export class ProfilePage implements OnDestroy {
   }
 
   public handlePlayerLoadMore(): void {
-    // Load more items only for the player's playlist, independent from the grid
     const snapshotSearch = this.playerSearchSnapshot;
     const orderBy = snapshotSearch ? 'title:asc' : 'createdAt:desc';
     const alreadyLoaded = this.playerPlaylist().length;
@@ -240,7 +227,6 @@ export class ProfilePage implements OnDestroy {
       .pipe(take(1))
       .subscribe((list: Song[]) => {
         if (!list || list.length === 0) return;
-        // Filtrar apenas músicas do usuário atual
         const currentUser = this.currentUser();
         const userSongs = list.filter((song) => song.user === currentUser?._id);
         const merged = [...this.playerPlaylist(), ...userSongs];

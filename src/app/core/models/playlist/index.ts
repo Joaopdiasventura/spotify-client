@@ -25,6 +25,7 @@ export interface CreatePlaylistDto {
   isPublic?: boolean;
   coverImage?: string;
   songs?: string[];
+  user: string;
 }
 
 // Para atualização de playlist
