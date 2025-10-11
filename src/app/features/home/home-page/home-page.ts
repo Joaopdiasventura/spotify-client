@@ -1,10 +1,9 @@
-import { Component, ElementRef, OnDestroy, ViewChild, inject, signal } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject, signal } from '@angular/core';
 import { AsyncPipe, isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { Song } from '../../../core/models/song';
 import { Header } from '../../../shared/components/header/header';
 import { SongCard } from '../../../shared/components/song-card/song-card';
-import { Player } from '../../../shared/components/player/player';
 import { Sidebar } from '../../../shared/components/sidebar/sidebar';
 import { SongService } from '../../../core/services/song/song.service';
 import {
@@ -24,29 +23,39 @@ import {
   distinctUntilChanged,
   takeUntil,
 } from 'rxjs';
+import { PlayerService } from '../../../shared/services/player/player.service';
+import { PlayerConfig } from '../../../shared/interfaces/config/player';
 
 @Component({
   selector: 'app-home-page',
-  imports: [Header, SongCard, Player, Sidebar, AsyncPipe],
+  imports: [Header, SongCard, Sidebar, AsyncPipe],
   templateUrl: './home-page.html',
   styleUrl: './home-page.scss',
 })
-export class HomePage implements OnDestroy {
-  public currentIndex = signal<number>(-1);
-  public isPlaying = signal(false);
+export class HomePage implements OnInit, OnDestroy {
   public sidebarOpen = signal(false);
-  public playerPlaylist = signal<Song[]>([]);
   private playerSearchSnapshot = '';
 
   public skeletons = Array.from({ length: 5 }, (_, i) => i);
 
   private readonly songService = inject(SongService);
+  private readonly playerService = inject(PlayerService);
   private readonly platform = inject(PLATFORM_ID);
 
   private readonly search$ = new BehaviorSubject<string>('');
   private readonly page$ = new BehaviorSubject<number>(0);
   private readonly limit = 10;
   private observer?: IntersectionObserver;
+
+  public currentPlayerConfig: PlayerConfig = {
+    playlist: [],
+    currentIndex: -1,
+    isPlaying: false,
+    playEvent: this.handlePlayerIndexChange.bind(this),
+    closeEvent: this.onPlayerClose.bind(this),
+    playingChange: this.onPlayingChange.bind(this),
+    loadMore: this.handlePlayerLoadMore.bind(this),
+  };
 
   private readonly params$ = combineLatest([this.search$, this.page$]).pipe(shareReplay(1));
 
@@ -77,6 +86,12 @@ export class HomePage implements OnDestroy {
     this.params$.pipe(map(() => true)),
     this.pageResult$.pipe(map(() => false))
   ).pipe(startWith(false), shareReplay(1));
+
+  public ngOnInit(): void {
+    this.playerService.player$.subscribe((data) => {
+      if (data) this.currentPlayerConfig = data;
+    });
+  }
 
   private readonly requestState$ = merge(
     this.params$.pipe(map(([, page]) => ({ page, loading: true }))),
@@ -132,31 +147,47 @@ export class HomePage implements OnDestroy {
     this.songs$.pipe(take(1)).subscribe((list) => {
       if (!list || index < 0 || index >= list.length) return;
       // Create a snapshot playlist independent from the grid list
-      this.playerPlaylist.set([...list]);
+      this.playerService.updatePlayerData({
+        ...this.currentPlayerConfig,
+        playlist: list,
+        currentIndex: index,
+        isPlaying: true,
+      });
       this.playerSearchSnapshot = this.search$.getValue();
-      this.currentIndex.set(index);
-      this.isPlaying.set(true);
     });
   }
 
   // Index change coming from the player (play/pause/next/prev)
   public handlePlayerIndexChange(index: number): void {
-    const list = this.playerPlaylist();
+    const list = this.currentPlayerConfig.playlist;
     if (!list || index < 0 || index >= list.length) return;
-    if (this.currentIndex() === index) this.isPlaying.update((v) => !v);
+    if (this.currentPlayerConfig.currentIndex === index)
+      this.playerService.updatePlayerData({
+        ...this.currentPlayerConfig,
+        isPlaying: !this.currentPlayerConfig.isPlaying,
+      });
     else {
-      this.currentIndex.set(index);
-      this.isPlaying.set(true);
+      this.playerService.updatePlayerData({
+        ...this.currentPlayerConfig,
+        currentIndex: index,
+        isPlaying: true,
+      });
     }
   }
 
   public onPlayerClose(): void {
-    this.currentIndex.set(-1);
-    this.isPlaying.set(false);
+    this.playerService.updatePlayerData({
+      ...this.currentPlayerConfig,
+      currentIndex: -1,
+      isPlaying: false,
+    });
   }
 
   public handlePlayPause(): void {
-    this.isPlaying.update((v) => !v);
+    this.playerService.updatePlayerData({
+      ...this.currentPlayerConfig,
+      isPlaying: !this.currentPlayerConfig.isPlaying,
+    });
   }
 
   public changeSidebar(): void {
@@ -169,7 +200,10 @@ export class HomePage implements OnDestroy {
   }
 
   public onPlayingChange(playing: boolean): void {
-    this.isPlaying.set(playing);
+    this.playerService.updatePlayerData({
+      ...this.currentPlayerConfig,
+      isPlaying: playing,
+    });
   }
 
   public ngOnDestroy(): void {
@@ -180,7 +214,7 @@ export class HomePage implements OnDestroy {
     // Load more items only for the player's playlist, independent from the grid
     const snapshotSearch = this.playerSearchSnapshot;
     const orderBy = snapshotSearch ? 'title:asc' : 'createdAt:desc';
-    const alreadyLoaded = this.playerPlaylist().length;
+    const alreadyLoaded = this.currentPlayerConfig.playlist!.length;
     const nextPage = Math.floor(alreadyLoaded / this.limit);
     this.songService
       .findMany({
@@ -193,8 +227,8 @@ export class HomePage implements OnDestroy {
       .pipe(take(1))
       .subscribe((list) => {
         if (!list || list.length === 0) return;
-        const merged = [...this.playerPlaylist(), ...list];
-        this.playerPlaylist.set(merged);
+        const merged = [...this.currentPlayerConfig.playlist!, ...list];
+        this.playerService.updatePlayerData({ ...this.currentPlayerConfig, playlist: merged });
       });
   }
 
@@ -238,8 +272,8 @@ export class HomePage implements OnDestroy {
 
   public isCurrentSong(song: Song): boolean {
     if (!song) return false;
-    const list = this.playerPlaylist();
-    const idx = this.currentIndex();
+    const list = this.currentPlayerConfig.playlist!;
+    const idx = this.currentPlayerConfig.currentIndex;
     if (idx < 0 || idx >= list.length) return false;
     return list[idx]?._id === song._id;
   }

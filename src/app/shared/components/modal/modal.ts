@@ -1,7 +1,6 @@
 import { Component, EventEmitter, HostListener, Input, Output } from '@angular/core';
 import { LucideAngularModule } from 'lucide-angular';
-import { ModalConfig } from '../../interfaces/modal-config';
-
+import { ModalConfig } from '../../interfaces/config/modal';
 @Component({
   selector: 'app-modal',
   imports: [LucideAngularModule],

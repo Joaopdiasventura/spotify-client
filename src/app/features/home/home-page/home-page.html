@@ -17,11 +17,11 @@
           <app-song-card
             [song]="song"
             [index]="i"
-            [isPlaying]="isPlaying() && isCurrentSong(song)"
+            [isPlaying]="currentPlayerConfig.isPlaying && isCurrentSong(song)"
             (playEvent)="handleCardPlay($event)"
           ></app-song-card>
-          }
-          @if ((loadingInitial && (!songs || songs.length === 0)) || loadingMore) { @for (n of skeletons; track n) {
+          } @if ((loadingInitial && (!songs || songs.length === 0)) || loadingMore) { @for (n of
+          skeletons; track n) {
           <div class="song-skeleton">
             <div class="thumb-skel skeleton"></div>
             <div class="meta-skel">
@@ -37,16 +37,4 @@
       </div>
     </main>
   </div>
-
-  @if (currentIndex() !== -1) {
-    <app-player
-      [playlist]="playerPlaylist()"
-      [currentIndex]="currentIndex()"
-      [isPlaying]="isPlaying()"
-      (playEvent)="handlePlayerIndexChange($event)"
-      (closeEvent)="onPlayerClose()"
-      (playingChange)="onPlayingChange($event)"
-      (loadMore)="handlePlayerLoadMore()"
-    ></app-player>
-  }
 </div>

@@ -8,7 +8,8 @@ import { ReactiveFormsModule, FormBuilder, Validators, FormGroup } from '@angula
 import { LucideAngularModule } from 'lucide-angular';
 import { Router, RouterLink } from '@angular/router';
 import { Header } from '../../../../shared/components/header/header';
-import { ModalConfig } from '../../../../shared/interfaces/modal-config';
+import { ModalConfig } from '../../../../shared/interfaces/config/modal';
+import { PlayerService } from '../../../../shared/services/player/player.service';
 
 @Component({
   selector: 'app-create-page',
@@ -30,6 +31,7 @@ export class CreatePage implements OnInit, OnDestroy {
 
   private readonly authService = inject(AuthService);
   private readonly songService = inject(SongService);
+  private readonly playerService = inject(PlayerService);
   private readonly fb = inject(FormBuilder);
   private readonly router = inject(Router);
 
@@ -48,6 +50,7 @@ export class CreatePage implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.authService.user$.subscribe((user) => (this.currentUser = user));
+    this.playerService.updatePlayerData(null);
   }
 
   public ngOnDestroy(): void {

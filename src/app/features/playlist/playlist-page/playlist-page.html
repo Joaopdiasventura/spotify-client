@@ -1,0 +1,25 @@
+<div class="layout" [class.drawer-open]="sidebarOpen()">
+  <div class="sidebar-wrapper"><app-sidebar (closeEvent)="changeSidebar()"></app-sidebar></div>
+
+  <div class="overlay" (click)="changeSidebar()"></div>
+
+  <div class="main">
+    <app-header [showSearch]="false" (menuClick)="changeSidebar()"></app-header>
+
+    <main class="content">
+      <div class="container">
+        <h2 class="section-title">{{ (playlist$ | async)?.name || 'Playlist' }}</h2>
+        <div class="grid-cards">
+          @for (song of (songs$ | async); track song._id; let i = $index) {
+          <app-song-card
+            [song]="song"
+            [index]="i"
+            [isPlaying]="currentPlayerConfig.isPlaying && isCurrentSong(song)"
+            (playEvent)="onPlayAll($event)"
+          ></app-song-card>
+          }
+        </div>
+      </div>
+    </main>
+  </div>
+</div>

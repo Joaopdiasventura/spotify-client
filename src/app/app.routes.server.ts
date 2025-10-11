@@ -1,6 +1,7 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 import { userServerRoutes } from './features/user/routes/user.routes.server';
 import { songServerRoutes } from './features/song/routes/song.routes.server';
+import { playlistServerRoutes } from './features/playlist/routes/playlist.routes.server';
 
 export const serverRoutes: ServerRoute[] = [
   {
@@ -9,6 +10,7 @@ export const serverRoutes: ServerRoute[] = [
   },
   ...userServerRoutes,
   ...songServerRoutes,
+  ...playlistServerRoutes,
   {
     path: '**',
     renderMode: RenderMode.Prerender,

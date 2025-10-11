@@ -55,6 +55,9 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
   public volume = signal(1);
   public shuffle = signal(false);
   public loop = signal(false);
+  public expanded = signal(false);
+  public overlayVisible = signal(false);
+  public overlayOpen = signal(false);
 
   private order: number[] = [];
   private chunkDurations: number[] = [];
@@ -335,6 +338,27 @@ export class Player implements OnInit, AfterViewInit, OnChanges {
       }
       this.updateMediaSessionPlaybackState();
       this.playingChange.emit(false);
+    }
+  }
+
+  public toggleExpanded(): void {
+    const isOpen = this.overlayVisible();
+    const dur = 300;
+    if (!isOpen) {
+      this.expanded.set(true);
+      this.overlayVisible.set(true);
+      // Wait next frame so CSS transitions can run
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => this.overlayOpen.set(true));
+      } else {
+        setTimeout(() => this.overlayOpen.set(true), 0);
+      }
+    } else {
+      this.overlayOpen.set(false);
+      setTimeout(() => {
+        this.overlayVisible.set(false);
+        this.expanded.set(false);
+      }, dur);
     }
   }
 
