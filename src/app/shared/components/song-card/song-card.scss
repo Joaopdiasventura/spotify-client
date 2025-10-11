@@ -9,9 +9,12 @@
   transition: background 150ms ease;
   cursor: pointer;
   @include gaps($space-2, $space-3);
-  width: 100%;
-  min-width: 0; // allow children to shrink and ellipsize
-  overflow: hidden; // prevent horizontal overflow leaking to parent
+  // Wrap declarations to opt into new Sass mixed-decls behavior
+  & {
+    width: 100%;
+    min-width: 0; // allow children to shrink and ellipsize
+    overflow: hidden; // prevent horizontal overflow leaking to parent
+  }
 
   &:hover {
     background: rgba($color-elev, 0.65);

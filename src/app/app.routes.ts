@@ -12,5 +12,10 @@ export const routes: Routes = [
     path: 'song',
     loadChildren: () => import('./features/song/routes/song.routes').then((m) => m.routes),
   },
+  {
+    path: 'playlist',
+    loadChildren: () =>
+      import('./features/playlist/routes/playlist.routes').then((m) => m.routes),
+  },
   { path: '**', redirectTo: 'home' },
 ];
