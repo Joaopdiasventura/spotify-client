@@ -5,8 +5,8 @@ export const songServerRoutes: ServerRoute[] = [
     path: 'song',
     renderMode: RenderMode.Client,
   },
-  {
-    path: 'song/create',
-    renderMode: RenderMode.Client,
-  },
+  // {
+  //   path: 'song/create',
+  //   renderMode: RenderMode.Client,
+  // },
 ];
