@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import {
   FormBuilder,
   Validators,
@@ -11,8 +11,9 @@ import { AuthService } from '../../../../core/services/user/auth/auth.service';
 import { UserService } from '../../../../core/services/user/user.service';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { ModalConfig } from '../../../../shared/interfaces/modal-config';
 import { Modal } from '../../../../shared/components/modal/modal';
+import { ModalConfig } from '../../../../shared/interfaces/config/modal';
+import { PlayerService } from '../../../../shared/services/player/player.service';
 
 function matchPasswords(control: AbstractControl): ValidationErrors | null {
   const password = control.get('password')?.value;
@@ -26,10 +27,11 @@ function matchPasswords(control: AbstractControl): ValidationErrors | null {
   templateUrl: './create-page.html',
   styleUrl: './create-page.scss',
 })
-export class CreatePage {
+export class CreatePage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
+  private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
 
   public loading = signal(false);
@@ -53,6 +55,10 @@ export class CreatePage {
     },
     { validators: matchPasswords }
   );
+
+  public ngOnInit(): void {
+    this.playerService.updatePlayerData(null);
+  }
 
   public get f(): FormGroup['controls'] {
     return this.form.controls;

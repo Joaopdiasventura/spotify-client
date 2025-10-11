@@ -1,11 +1,12 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../../core/services/user/auth/auth.service';
 import { UserService } from '../../../../core/services/user/user.service';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
-import { ModalConfig } from '../../../../shared/interfaces/modal-config';
 import { Modal } from '../../../../shared/components/modal/modal';
+import { ModalConfig } from '../../../../shared/interfaces/config/modal';
+import { PlayerService } from '../../../../shared/services/player/player.service';
 
 @Component({
   selector: 'app-login-page',
@@ -13,10 +14,11 @@ import { Modal } from '../../../../shared/components/modal/modal';
   templateUrl: './login-page.html',
   styleUrl: './login-page.scss',
 })
-export class LoginPage {
+export class LoginPage implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly userService = inject(UserService);
   private readonly authService = inject(AuthService);
+    private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
 
   public loading = signal(false);
@@ -35,6 +37,10 @@ export class LoginPage {
       ],
     ],
   });
+
+  public ngOnInit(): void {
+    this.playerService.updatePlayerData(null);
+  }
 
   public get f(): FormGroup['controls'] {
     return this.form.controls;
