@@ -25,13 +25,11 @@ export class CreatePlaylistPage {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  // Form data
   public playlistName = '';
   public playlistDescription = '';
   public isPublic = false;
   public songSearch = '';
 
-  // State
   public sidebarOpen = signal(false);
   public isCreating = signal(false);
   public showErrors = false;
@@ -39,7 +37,6 @@ export class CreatePlaylistPage {
 
   public skeletons = Array.from({ length: 5 }, (_, i) => i);
 
-  // Songs search
   private searchTerm$ = new BehaviorSubject<string>('');
 
   public filteredSongs$: Observable<Song[]> = this.searchTerm$.pipe(
@@ -60,7 +57,6 @@ export class CreatePlaylistPage {
   );
 
   public constructor() {
-    // Load initial songs
     this.searchTerm$.next('');
   }
 
@@ -77,7 +73,6 @@ export class CreatePlaylistPage {
       this.selectedSongs = [...this.selectedSongs, song];
     }
 
-    // Refresh the filtered songs to update availability
     this.searchTerm$.next(this.songSearch);
   }
 
@@ -87,7 +82,6 @@ export class CreatePlaylistPage {
 
   public removeSelectedSong(index: number): void {
     this.selectedSongs.splice(index, 1);
-    // Refresh the filtered songs to include the removed song
     this.searchTerm$.next(this.songSearch);
   }
 
@@ -98,7 +92,6 @@ export class CreatePlaylistPage {
   }
 
   public async createPlaylist(): Promise<void> {
-    // Validate form
     if (!this.playlistName.trim()) {
       this.showErrors = true;
       return;
@@ -108,7 +101,6 @@ export class CreatePlaylistPage {
     this.showErrors = false;
 
     try {
-      // Get current user ID
       const currentUser = await this.authService.user$.pipe(
         take(1)
       ).toPromise();
@@ -122,15 +114,16 @@ export class CreatePlaylistPage {
         description: this.playlistDescription.trim() || undefined,
         isPublic: this.isPublic,
         songs: this.selectedSongs.map(song => song._id),
-        user: currentUser._id // ← Campo obrigatório adicionado
+        user: currentUser._id
       };
 
       console.log('Criando playlist com dados:', createDto);
 
       await this.playlistService.createPlaylist(createDto).toPromise();
 
-      // Navigate back to profile
-      this.router.navigate(['/profile']);
+      this.router.navigate(['/profile'], {
+        state: { refreshPlaylists: true }
+      });
 
     } catch (error) {
       console.error('Erro ao criar playlist:', error);
@@ -155,7 +148,6 @@ export class CreatePlaylistPage {
   }
 
   public onSearchChange(value: string): void {
-    // Handle header search if needed
     console.log('Search value:', value);
   }
 }

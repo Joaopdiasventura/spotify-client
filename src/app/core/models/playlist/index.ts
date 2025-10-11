@@ -5,20 +5,17 @@ export interface Playlist {
   _id: string;
   name: string;
   description?: string;
-  owner: string; // User ID
-  songs: string[]; // Array de Song IDs
+  owner?: string;
+  user?: string;
+  songs: string[];
   coverImage?: string;
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;
-  // Campos populados (opcionais, para quando fizer populate)
   ownerDetails?: User;
   songDetails?: Song[];
-  // Estatísticas (pode ser calculado no frontend ou vindo do backend)
-  totalDuration?: number;
 }
 
-// Para criação de nova playlist
 export interface CreatePlaylistDto {
   name: string;
   description?: string;
@@ -28,7 +25,6 @@ export interface CreatePlaylistDto {
   user: string;
 }
 
-// Para atualização de playlist
 export interface UpdatePlaylistDto {
   name?: string;
   description?: string;
@@ -37,7 +33,6 @@ export interface UpdatePlaylistDto {
   songs?: string[];
 }
 
-// Filtros para buscar playlists
 export interface PlaylistFilters {
   name?: string;
   owner?: string;
@@ -47,7 +42,6 @@ export interface PlaylistFilters {
   orderBy?: string;
 }
 
-// Resposta paginada para listagem de playlists
 export interface PlaylistResponse {
   data: Playlist[];
   pagination: {
@@ -60,15 +54,17 @@ export interface PlaylistResponse {
   };
 }
 
-// Para adicionar/remover músicas de uma playlist
 export interface UpdatePlaylistSongsDto {
   action: 'add' | 'remove';
   songIds: string[];
 }
 
-// Estatísticas da playlist (pode ser útil para exibir informações)
 export interface PlaylistStats {
   totalSongs: number;
   totalDuration: number;
   genres: string[];
+}
+
+export function getPlaylistOwnerId(playlist: Playlist): string | undefined {
+  return playlist.owner || playlist.user;
 }

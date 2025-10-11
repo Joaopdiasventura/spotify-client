@@ -54,6 +54,7 @@ export class ProfilePage implements OnDestroy {
 
   private readonly search$ = new BehaviorSubject<string>('');
   private readonly page$ = new BehaviorSubject<number>(0);
+  private readonly refreshPlaylists$ = new BehaviorSubject<void>(undefined);
   private readonly limit = 10;
   private observer?: IntersectionObserver;
 
@@ -104,13 +105,29 @@ export class ProfilePage implements OnDestroy {
     shareReplay(1)
   );
 
-  public readonly userPlaylists$ = combineLatest([
-    this.playlistService.getUserPlaylists(),
-    this.user$,
-  ]).pipe(
-    map(([playlists, user]) => {
-      if (!user) return [];
-      return playlists.filter((playlist) => playlist.owner === user._id);
+  public readonly userPlaylists$ = combineLatest([this.refreshPlaylists$, this.user$]).pipe(
+    switchMap(([, user]) => {
+      if (!user) return of([]);
+
+      console.log('🔄 Buscando playlists para usuário:', user._id);
+      return this.playlistService.getUserPlaylists().pipe(
+        map((allPlaylists) => {
+          console.log('📦 Todas as playlists retornadas:', allPlaylists);
+
+          const userPlaylists = allPlaylists.filter((playlist) => {
+            const ownerId = playlist.owner || playlist.user;
+            const isUserPlaylist = ownerId === user._id;
+
+            console.log(
+              `🎵 Playlist "${playlist.name}" - Owner: ${playlist.owner} - User: ${playlist.user} - É do usuário? ${isUserPlaylist}`
+            );
+            return isUserPlaylist;
+          });
+
+          console.log('✅ Playlists filtradas do usuário:', userPlaylists);
+          return userPlaylists;
+        })
+      );
     }),
     shareReplay(1)
   );
@@ -232,6 +249,11 @@ export class ProfilePage implements OnDestroy {
         const merged = [...this.playerPlaylist(), ...userSongs];
         this.playerPlaylist.set(merged);
       });
+  }
+
+  public refreshPlaylists(): void {
+    console.log('🔄 Forçando refresh das playlists...');
+    this.refreshPlaylists$.next();
   }
 
   private setupObserver(): void {
