@@ -5,16 +5,14 @@ import { Router } from '@angular/router';
 @Component({
   selector: 'app-playlist-card',
   templateUrl: './playlist-card.html',
-  styleUrl: './playlist-card.scss'
+  styleUrl: './playlist-card.scss',
 })
 export class PlaylistCard {
   private router = inject(Router);
 
-  // Inputs
   public playlist = input.required<Playlist>();
   public showOwner = input<boolean>(false);
 
-  // Outputs
   public play = output<Playlist>();
   public click = output<Playlist>();
 
@@ -30,6 +28,9 @@ export class PlaylistCard {
 
   public onClick(): void {
     this.click.emit(this.playlist());
-    this.router.navigate(['/playlists', this.playlist()._id]);
+    const playlistId = this.playlist()._id;
+    if (playlistId) {
+      this.router.navigate(['/playlists', playlistId]);
+    }
   }
 }

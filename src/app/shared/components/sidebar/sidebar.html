@@ -38,10 +38,13 @@
       }
     </div>
   </nav>
+
+  @if (currentUser()) {
   <div class="sidebar-footer">
     <button class="btn-logout" (click)="logOut()">
       <lucide-icon name="log-out"></lucide-icon>
       Sair
     </button>
   </div>
+  }
 </aside>

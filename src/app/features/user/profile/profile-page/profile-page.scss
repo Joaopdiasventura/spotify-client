@@ -40,7 +40,7 @@
 }
 
 .main {
-  height: 100vh; /* Alterado para 100vh */
+  height: 100vh;
   flex: 1;
   min-height: 0;
   min-width: 0;
@@ -52,11 +52,10 @@
 .content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto; /* Scroll principal na área de conteúdo */
+  overflow-y: auto;
   padding: $space-3 $space-4;
   overflow-x: hidden;
 
-  /* Estilização do scrollbar */
   &::-webkit-scrollbar {
     width: 6px;
   }
@@ -76,11 +75,11 @@
 }
 
 .container {
-  min-height: 100%; /* Garante que o container ocupe altura mínima */
+  min-height: 100%;
   display: grid;
   grid-template-rows: auto auto 1fr;
   gap: $space-6;
-  padding-bottom: $space-6; /* Espaço extra no final */
+  padding-bottom: $space-6;
 }
 
 .profile-header {
@@ -89,7 +88,7 @@
   gap: $space-4;
   padding: $space-4 0;
   border-bottom: 1px solid $color-border;
-  flex-shrink: 0; /* Impede que o header encolha */
+  flex-shrink: 0;
 }
 
 .profile-avatar {
@@ -130,7 +129,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: $space-4;
-    flex-shrink: 0; /* Impede que o header da seção encolha */
+    flex-shrink: 0;
 
     .section-title {
       margin: 0;
@@ -154,7 +153,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 200ms ease;
-  flex-shrink: 0; /* Impede que o botão encolha */
+  flex-shrink: 0;
 
   &:hover {
     background: $color-primary-600;
@@ -171,8 +170,8 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: $space-4;
   margin-bottom: $space-6;
-  max-height: none; /* Remove qualquer limitação de altura */
-  overflow: visible; /* Garante que o conteúdo seja visível */
+  max-height: none;
+  overflow: visible;
 }
 
 .playlist-skeleton {
@@ -187,8 +186,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: $space-2;
-  max-height: none; /* Remove limitação de altura */
-  overflow: visible; /* Garante que o conteúdo seja visível */
+  max-height: none;
+  overflow: visible;
 
   @include up($bp-md) {
     gap: $space-3;
@@ -204,7 +203,7 @@
   text-align: center;
   padding: $space-8;
   color: $color-muted;
-  grid-column: 1 / -1; /* Ocupa toda a largura do grid */
+  grid-column: 1 / -1;
 
   p {
     margin-bottom: $space-4;
@@ -312,7 +311,6 @@
   }
 }
 
-/* Responsive adjustments */
 @include down($bp-md) {
   .content {
     padding: $space-2 $space-3;

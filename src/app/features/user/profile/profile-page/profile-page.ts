@@ -109,22 +109,13 @@ export class ProfilePage implements OnDestroy {
     switchMap(([, user]) => {
       if (!user) return of([]);
 
-      console.log('🔄 Buscando playlists para usuário:', user._id);
       return this.playlistService.getUserPlaylists().pipe(
         map((allPlaylists) => {
-          console.log('📦 Todas as playlists retornadas:', allPlaylists);
-
           const userPlaylists = allPlaylists.filter((playlist) => {
             const ownerId = playlist.owner || playlist.user;
             const isUserPlaylist = ownerId === user._id;
-
-            console.log(
-              `🎵 Playlist "${playlist.name}" - Owner: ${playlist.owner} - User: ${playlist.user} - É do usuário? ${isUserPlaylist}`
-            );
             return isUserPlaylist;
           });
-
-          console.log('✅ Playlists filtradas do usuário:', userPlaylists);
           return userPlaylists;
         })
       );
@@ -252,8 +243,28 @@ export class ProfilePage implements OnDestroy {
   }
 
   public refreshPlaylists(): void {
-    console.log('🔄 Forçando refresh das playlists...');
     this.refreshPlaylists$.next();
+  }
+
+  public playPlaylist(playlist: Playlist): void {
+    if (playlist.songDetails && playlist.songDetails.length > 0) {
+      this.playerPlaylist.set(playlist.songDetails);
+      this.currentIndex.set(0);
+      this.isPlaying.set(true);
+    } else {
+      this.playlistService
+        .getPlaylistById(playlist._id)
+        .pipe(take(1))
+        .subscribe((fullPlaylist) => {
+          if (fullPlaylist.songDetails && fullPlaylist.songDetails.length > 0) {
+            this.playerPlaylist.set(fullPlaylist.songDetails);
+            this.currentIndex.set(0);
+            this.isPlaying.set(true);
+          } else {
+            console.warn('⚠️ Playlist vazia ou sem músicas');
+          }
+        });
+    }
   }
 
   private setupObserver(): void {

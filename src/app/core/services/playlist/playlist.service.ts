@@ -6,7 +6,8 @@ import {
   CreatePlaylistDto,
   UpdatePlaylistDto,
   PlaylistFilters,
-  UpdatePlaylistSongsDto
+  UpdatePlaylistSongsDto,
+  PlaylistSong
 } from '../../models/playlist';
 
 declare const API_URL: string;
@@ -77,9 +78,17 @@ export class PlaylistService {
 
   public getPlaylistsContainingSong(songId: string): Observable<Playlist[]> {
     return this.http.get<Playlist[]>(this.apiUrl)
-      .pipe(map(playlists => playlists.filter(playlist =>
-        playlist.songs.includes(songId)
-      )));
+      .pipe(map(playlists => playlists.filter(playlist => {
+        if (!playlist.songs || playlist.songs.length === 0) return false;
+
+        if (typeof playlist.songs[0] === 'string') {
+          return (playlist.songs as string[]).includes(songId);
+        }
+
+        return (playlist.songs as PlaylistSong[]).some((song: PlaylistSong) =>
+          typeof song === 'object' && song !== null && '_id' in song && song._id === songId
+        );
+      })));
   }
 
   public duplicatePlaylist(playlistId: string, newName?: string): Observable<Playlist> {

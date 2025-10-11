@@ -127,11 +127,9 @@ export class HomePage implements OnDestroy {
     this.setupObserver();
   }
 
-  // Play from a song card (grid). Snapshots the current visible list for the player.
   public handleCardPlay(index: number): void {
     this.songs$.pipe(take(1)).subscribe((list) => {
       if (!list || index < 0 || index >= list.length) return;
-      // Create a snapshot playlist independent from the grid list
       this.playerPlaylist.set([...list]);
       this.playerSearchSnapshot = this.search$.getValue();
       this.currentIndex.set(index);
@@ -139,7 +137,6 @@ export class HomePage implements OnDestroy {
     });
   }
 
-  // Index change coming from the player (play/pause/next/prev)
   public handlePlayerIndexChange(index: number): void {
     const list = this.playerPlaylist();
     if (!list || index < 0 || index >= list.length) return;
@@ -177,7 +174,6 @@ export class HomePage implements OnDestroy {
   }
 
   public handlePlayerLoadMore(): void {
-    // Load more items only for the player's playlist, independent from the grid
     const snapshotSearch = this.playerSearchSnapshot;
     const orderBy = snapshotSearch ? 'title:asc' : 'createdAt:desc';
     const alreadyLoaded = this.playerPlaylist().length;

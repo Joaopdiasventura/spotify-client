@@ -1,0 +1,212 @@
+<div class="layout" [class.drawer-open]="sidebarOpen()">
+  <div class="sidebar-wrapper"><app-sidebar
+      (closeEvent)="changeSidebar()"></app-sidebar></div>
+
+  <div class="overlay" (click)="changeSidebar()"></div>
+
+  <div class="main">
+    <app-header (searchEvent)="onSearchChange($event)"
+      (menuClick)="changeSidebar()"></app-header>
+
+    <main class="content">
+      <div class="container">
+        @if (playlist$ | async; as playlist) {
+        <!-- Header da Playlist -->
+        <div class="playlist-header">
+          <button class="back-btn" (click)="goBack()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+            </svg>
+            Voltar
+          </button>
+
+          <div class="playlist-hero">
+            <div class="playlist-cover">
+              @if (playlist.coverImage) {
+              <img [src]="playlist.coverImage" [alt]="playlist.name"
+                class="cover-image">
+              } @else {
+              <div class="cover-placeholder">
+                <div class="music-icon">🎵</div>
+              </div>
+              }
+            </div>
+
+            <div class="playlist-info">
+              <span class="playlist-type">Playlist</span>
+              <h1 class="playlist-title">{{ playlist.name }}</h1>
+
+              @if (playlist.description) {
+              <p class="playlist-description">{{ playlist.description }}</p>
+              }
+
+              <div class="playlist-meta">
+                <span class="meta-item">
+                  por <strong>{{ getUserName(playlist) }}</strong>
+                </span>
+                <span class="meta-divider">•</span>
+                <span class="meta-item">{{ getSongsCount(playlist) }}
+                  músicas</span>
+                <span class="meta-divider">•</span>
+                <span class="meta-item" [class.public]="playlist.isPublic">
+                  {{ playlist.isPublic ? 'Pública' : 'Privada' }}
+                </span>
+              </div>
+
+              <div class="playlist-actions">
+                <button class="btn-play" (click)="playPlaylist()">
+                  <svg width="24" height="24" viewBox="0 0 24 24"
+                    fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                  </svg>
+                  Reproduzir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Músicas -->
+        <div class="songs-section">
+          <div class="section-header">
+            <h2 class="section-title">Músicas da Playlist</h2>
+            <span class="songs-count">{{ getSongsCount(playlist) }}
+              músicas</span>
+          </div>
+
+          <div class="songs-list">
+            @if (getSongs(playlist).length > 0) {
+            <div class="songs-table">
+              <div class="table-header">
+                <div class="col-index">#</div>
+                <div class="col-title">Título</div>
+                <div class="col-artist">Artista</div>
+                <div class="col-duration">
+                  <svg width="16" height="16" viewBox="0 0 24 24"
+                    fill="currentColor">
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                  </svg>
+                </div>
+              </div>
+
+              @for (song of getSongs(playlist); track getSongId(song, $index);
+              let i = $index) {
+              <div class="song-row"
+                [class.playing]="isCurrentSong(song)"
+                [class.selected]="isCurrentSong(song)"
+                (click)="playSong(i)">
+                <div class="col-index">
+                  @if (isCurrentSong(song) && isPlaying()) {
+                  <div class="playing-indicator">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                  </div>
+                  } @else {
+                  <span class="track-number">{{ i + 1 }}</span>
+                  }
+                </div>
+
+                <div class="col-title">
+                  <div class="song-info">
+                    <div class="song-thumbnail">
+                      @if (getSongThumbnail(song)) {
+                      <img [src]="getSongThumbnail(song)"
+                        [alt]="getSongTitle(song)" class="thumbnail">
+                      } @else {
+                      <div class="thumbnail-placeholder small">🎵</div>
+                      }
+                    </div>
+                    <div class="song-text">
+                      <h4 class="song-title"
+                        [class.playing]="isCurrentSong(song)">{{
+                        getSongTitle(song) }}</h4>
+                      @if (getSongDescription(song)) {
+                      <p class="song-description">{{ getSongDescription(song)
+                        }}</p>
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                <div class="col-artist">
+                  <span class="artist-name">{{ getSongArtist(song) }}</span>
+                </div>
+
+                <div class="col-duration">
+                  <span class="duration">{{
+                    formatDuration(getSongDuration(song)) }}</span>
+                </div>
+              </div>
+              }
+            </div>
+            } @else {
+            <div class="empty-playlist">
+              <div class="empty-icon">🎵</div>
+              <h3>Playlist vazia</h3>
+              <p>Esta playlist não contém nenhuma música ainda.</p>
+            </div>
+            }
+          </div>
+        </div>
+        } @else {
+        <!-- Loading State -->
+        <div class="loading-state">
+          <div class="playlist-header-skeleton">
+            <div class="back-btn-skel skeleton"></div>
+            <div class="hero-skeleton">
+              <div class="cover-skel skeleton"></div>
+              <div class="info-skel">
+                <div class="line type-skel skeleton"></div>
+                <div class="line title-skel skeleton"></div>
+                <div class="line desc-skel skeleton"></div>
+                <div class="meta-skel">
+                  <div class="line meta-line skeleton"></div>
+                </div>
+                <div class="actions-skel">
+                  <div class="btn-skel skeleton"></div>
+                  <div class="btn-skel secondary skeleton"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="songs-skeleton">
+            <div class="section-header-skel">
+              <div class="line title-skel skeleton"></div>
+              <div class="line count-skel skeleton"></div>
+            </div>
+
+            @for (n of skeletons; track n) {
+            <div class="song-row-skeleton">
+              <div class="col-index-skel skeleton"></div>
+              <div class="col-title-skel">
+                <div class="thumb-skel skeleton"></div>
+                <div class="text-skel">
+                  <div class="line title-line skeleton"></div>
+                  <div class="line desc-line skeleton"></div>
+                </div>
+              </div>
+              <div class="col-artist-skel skeleton"></div>
+              <div class="col-duration-skel skeleton"></div>
+            </div>
+            }
+          </div>
+        </div>
+        }
+      </div>
+    </main>
+  </div>
+
+  @if (currentIndex() !== -1) {
+  <app-player
+    [playlist]="playerPlaylist()"
+    [currentIndex]="currentIndex()"
+    [isPlaying]="isPlaying()"
+    (playEvent)="handlePlayerIndexChange($event)"
+    (closeEvent)="onPlayerClose()"
+    (playingChange)="onPlayingChange($event)"
+    (loadMore)="handlePlayerLoadMore()"></app-player>
+  }
+</div>

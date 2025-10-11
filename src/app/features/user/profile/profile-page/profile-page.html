@@ -1,15 +1,19 @@
 <div class="layout" [class.drawer-open]="sidebarOpen()">
-  <div class="sidebar-wrapper"><app-sidebar (closeEvent)="changeSidebar()"></app-sidebar></div>
+  <div class="sidebar-wrapper"><app-sidebar
+      (closeEvent)="changeSidebar()"></app-sidebar></div>
 
   <div class="overlay" (click)="changeSidebar()"></div>
 
   <div class="main">
-    <app-header (searchEvent)="onSearchChange($event)" (menuClick)="changeSidebar()"></app-header>
+    <app-header (searchEvent)="onSearchChange($event)"
+      (menuClick)="changeSidebar()"></app-header>
 
     <main class="content">
       <div class="container">
-        @let user = (user$ | async); @let userSongs = (userSongs$ | async); @let userPlaylists = (userPlaylists$ | async);
-        @let loadingInitial = (loadingInitial$ | async); @let loadingMore = (loadingMore$ | async);
+        @let user = (user$ | async); @let userSongs = (userSongs$ | async);
+        @let userPlaylists = (userPlaylists$ | async);
+        @let loadingInitial = (loadingInitial$ | async);
+        @let loadingMore = (loadingMore$ | async);
 
         <!-- Seção de informações do usuário -->
         <div class="profile-header">
@@ -36,17 +40,18 @@
 
           <div class="grid-playlists">
             @if (userPlaylists && userPlaylists.length > 0) {
-              @for (playlist of userPlaylists; track playlist._id) {
-                <app-playlist-card
-                  [playlist]="playlist"
-                  (click)="openPlaylist(playlist)"
-                ></app-playlist-card>
-              }
+            @for (playlist of userPlaylists; track playlist._id) {
+            <app-playlist-card
+              [playlist]="playlist"
+              [showOwner]="false"
+              (play)="playPlaylist(playlist)"></app-playlist-card>
+            }
             } @else if (!loadingInitial) {
-              <div class="empty-state">
-                <p>Nenhuma playlist criada ainda</p>
-                <button class="btn-primary" (click)="createPlaylist()">Criar primeira playlist</button>
-              </div>
+            <div class="empty-state">
+              <p>Nenhuma playlist criada ainda</p>
+              <button class="btn-primary" (click)="createPlaylist()">Criar
+                primeira playlist</button>
+            </div>
             }
 
             @if (loadingInitial) {
@@ -74,8 +79,8 @@
                   [song]="song"
                   [index]="i"
                   [isPlaying]="isPlaying() && isCurrentSong(song)"
-                  (playEvent)="handleCardPlay($event)"
-                ></app-song-card>
+                  (playEvent)="handleCardPlay($event)">
+                </app-song-card>
               }
             } @else if (!loadingInitial) {
               <div class="empty-state">
@@ -83,7 +88,8 @@
               </div>
             }
 
-            @if ((loadingInitial && (!userSongs || userSongs.length === 0)) || loadingMore) {
+            @if ((loadingInitial && (!userSongs || userSongs.length === 0)) ||
+            loadingMore) {
               @for (n of skeletons; track n) {
                 <div class="song-skeleton">
                   <div class="thumb-skel skeleton"></div>
@@ -96,7 +102,8 @@
                 </div>
               }
             }
-            <div #infiniteSentinel class="infinite-sentinel" aria-hidden="true"></div>
+            <div #infiniteSentinel class="infinite-sentinel"
+              aria-hidden="true"></div>
           </div>
         </div>
       </div>
@@ -111,7 +118,7 @@
       (playEvent)="handlePlayerIndexChange($event)"
       (closeEvent)="onPlayerClose()"
       (playingChange)="onPlayingChange($event)"
-      (loadMore)="handlePlayerLoadMore()"
-    ></app-player>
+      (loadMore)="handlePlayerLoadMore()">
+    </app-player>
   }
 </div>
