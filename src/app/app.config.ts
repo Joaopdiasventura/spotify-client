@@ -33,6 +33,8 @@ import {
   Upload,
   Image,
   LogOut,
+  Maximize2,
+  Minimize2,
 } from 'lucide-angular';
 import { provideHttpClient, withFetch } from '@angular/common/http';
 
@@ -68,6 +70,8 @@ export const appConfig: ApplicationConfig = {
         ChevronRight,
         Menu,
         LogOut,
+        Maximize2,
+        Minimize2,
       })
     ),
   ],
